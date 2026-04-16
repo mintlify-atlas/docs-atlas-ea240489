@@ -1,0 +1,84 @@
+---
+title: "SQLCMD variables for environment-specific deployments"
+description: "Define SQLCMD variables in your SQL project to parameterize deployment values like environment names, server names, and connection strings."
+---
+
+SQLCMD variables let you write T-SQL once and deploy it to multiple environments without changing the source code. You declare a variable in the `.sqlproj` file, use it in your `.sql` files with the `$(VariableName)` syntax, and then supply the actual value at deploy time through SqlPackage. The `.dacpac` stores the variable names and default values; the resolved values are never baked in until deployment runs.
+
+## Defining a variable in the project file
+
+Add a `SqlCmdVariable` item inside an `ItemGroup` in your `.sqlproj`:
+
+```xml
+<ItemGroup>
+  <SqlCmdVariable Include="EnvironmentName">
+    <DefaultValue>testing</DefaultValue>
+    <Value>$(SqlCmdVar__1)</Value>
+  </SqlCmdVariable>
+</ItemGroup>
+```
+
+- **`DefaultValue`** is used when no override is provided at deploy time. It is safe for development and CI environments where the value is not sensitive.
+- **`Value`** references the MSBuild property `$(SqlCmdVar__1)` which tooling such as Visual Studio uses to supply a value during design-time builds. You can leave this as-is.
+
+## Using a variable in T-SQL
+
+Reference the variable anywhere in a `.sql` file using the `$(VariableName)` token:
+
+```sql
+IF '$(EnvironmentName)' = 'testing'
+BEGIN
+    -- do something only in testing
+END
+```
+
+Variables work in any SQL context — `IF` conditions, `EXECUTE` strings, database names in three-part identifiers, and more.
+
+## Supplying values at deploy time
+
+Pass variable values to SqlPackage with the `/v:VariableName=value` flag:
+
+```bash
+SqlPackage /Action:Publish \
+  /SourceFile:AdventureWorks.dacpac \
+  /TargetConnectionString:{connection_string_here} \
+  /v:EnvironmentName=production
+```
+
+You can supply multiple `/v:` flags in a single command — one for each variable you want to override.
+
+<Note>
+  SQLCMD variables are not validated at build time. Unresolved variable references do not produce build errors; they are resolved (or fall back to `DefaultValue`) only at deployment.
+</Note>
+
+## Use cases
+
+<AccordionGroup>
+  <Accordion title="Environment names">
+    Gate conditional logic on the target environment so that, for example, verbose logging or test data insertion only runs in non-production deployments.
+
+    ```sql
+    IF '$(EnvironmentName)' != 'production'
+    BEGIN
+        INSERT INTO dbo.AppSettings (SettingKey, SettingValue)
+        VALUES ('LogLevel', 'Verbose');
+    END
+    ```
+  </Accordion>
+  <Accordion title="Database names in cross-database queries">
+    Use a SQLCMD variable as the database portion of a three-part object name so the same project can target different database instances per environment.
+
+    ```sql
+    SELECT * FROM [$(AnalyticsDatabase)].dbo.SalesFact
+    ```
+
+    At deploy time, pass `/v:AnalyticsDatabase=Analytics_Prod` or `/v:AnalyticsDatabase=Analytics_Dev` depending on the target.
+  </Accordion>
+  <Accordion title="Server names">
+    When combined with a database reference that uses `ServerSqlCmdVariable`, you can control which server a linked reference resolves to at deployment without modifying T-SQL source.
+
+    ```sql
+    SELECT * FROM [$(ReportingServer)].[$(ReportingDb)].dbo.SalesFact
+    ```
+  </Accordion>
+</AccordionGroup>

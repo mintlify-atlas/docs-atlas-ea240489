@@ -1,0 +1,105 @@
+---
+title: "SqlPackage Export and Import: move data with bacpac"
+description: "Use SqlPackage Export to capture schema and data in a bacpac, and Import to restore it — ideal for database portability and archiving."
+---
+
+SqlPackage works with two package formats: `.dacpac` files contain only schema definitions, while `.bacpac` files contain both schema and data. Use a dacpac when you want to deploy, compare, or source-control a database schema. Use a bacpac when you need to archive a database with its data, move a database between environments, or create a portable snapshot for sharing.
+
+## Export
+
+The Export action creates a `.bacpac` file from a live database, capturing both the schema and the table data. This is useful for archiving a database at a point in time or moving it to a different server or Azure subscription.
+
+### Basic syntax
+
+```bash
+sqlpackage /Action:Export /TargetFile:<output-path> /SourceConnectionString:<connection-string>
+```
+
+### Example
+
+```bash
+sqlpackage /Action:Export \
+    /TargetFile:"MyDatabase.bacpac" \
+    /SourceConnectionString:"Server=tcp:{server}.database.windows.net,1433;Initial Catalog={database};User ID={user};Password={password};Encrypt=True;"
+```
+
+### Key export parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `/TargetFile` | Path for the output `.bacpac` file |
+| `/SourceConnectionString` | Connection string for the source database |
+| `/p:TableData` | Comma-separated list of tables to include data from. When specified, only data from the listed tables is exported. All other tables export schema only |
+
+<Note>
+  A bacpac is not suitable for use in CI/CD deployment pipelines. Use a dacpac with the Publish action for repeatable, incremental schema deployments. Reserve bacpac files for archiving and one-time data migrations.
+</Note>
+
+## Import
+
+The Import action restores a `.bacpac` file into a database, creating the schema and loading the data. Use Import to restore a database from an archive or to provision a copy of a database in a new environment.
+
+### Basic syntax
+
+```bash
+sqlpackage /Action:Import /SourceFile:<path-to-bacpac> /TargetConnectionString:<connection-string>
+```
+
+### Example
+
+```bash
+sqlpackage /Action:Import \
+    /SourceFile:"MyDatabase.bacpac" \
+    /TargetConnectionString:"Server=tcp:{server}.database.windows.net,1433;Initial Catalog={database};User ID={user};Password={password};Encrypt=True;"
+```
+
+### Key import parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `/SourceFile` | Path to the `.bacpac` file to import |
+| `/TargetConnectionString` | Connection string for the target database |
+
+<Warning>
+  The target database must be empty or newly created before running Import. Running Import against a database that already contains schema objects will fail. Create a blank database on the target server first, then provide its connection string to the Import command.
+</Warning>
+
+## Script and DeployReport
+
+These two read-only actions let you inspect what a Publish operation would do before you commit to applying changes.
+
+### Script
+
+The Script action generates a T-SQL deployment script without executing it. You can review and audit the script before running it against a database.
+
+```bash
+sqlpackage /Action:Script \
+    /SourceFile:"MyApp.dacpac" \
+    /TargetConnectionString:{connection_string} \
+    /OutputPath:"deployment-script.sql"
+```
+
+### DeployReport
+
+The DeployReport action generates an XML report describing all the changes that would be applied if you ran Publish. This is useful for change management review or automated validation in a pipeline.
+
+```bash
+sqlpackage /Action:DeployReport \
+    /SourceFile:"MyApp.dacpac" \
+    /TargetConnectionString:{connection_string} \
+    /OutputPath:"deploy-report.xml"
+```
+
+### DriftReport
+
+The DriftReport action reports schema changes that have been made to the database since the last deployment — changes that are not reflected in the registered dacpac. This helps you detect and audit out-of-band schema changes.
+
+```bash
+sqlpackage /Action:DriftReport \
+    /TargetConnectionString:{connection_string} \
+    /OutputPath:"drift-report.xml"
+```
+
+<Tip>
+  Run DeployReport in your CI pipeline before Publish to get a reviewable summary of what will change. Store the report as a pipeline artifact to maintain an audit trail of each deployment.
+</Tip>

@@ -1,0 +1,161 @@
+---
+title: "Troubleshoot SQL project build and deployment errors"
+description: "Resolve common Microsoft.Build.Sql build errors, MSBuild import issues, system dacpac reference problems, and SqlPackage deployment failures."
+---
+
+SQL project errors typically fall into a few categories: MSBuild import errors left over from SSDT-style projects, missing system dacpac references, unresolved object references at build time, and SqlPackage failures at deployment. This page covers the most common issues and how to resolve them.
+
+## Common build errors
+
+<AccordionGroup>
+  <Accordion title="MSB4019: The imported project was not found">
+    **Error message:**
+
+    ```
+    error MSB4019: The imported project "C:\Program Files\dotnet\sdk\6.0.100\Microsoft\VisualStudio\v11.0\SSDT\Microsoft.Data.Tools.Schema.SqlTasks.targets" was not found.
+    ```
+
+    **Cause:** The `.sqlproj` file contains legacy `<Import>` statements from an older SSDT-style project. SDK-style projects do not use these import statements.
+
+    **Resolution:** Open the `.sqlproj` file and remove any `<Import>` elements that reference `Microsoft.Data.Tools.Schema.SqlTasks.targets` or `Microsoft.Common.props`.
+  </Accordion>
+
+  <Accordion title="MSB4011: Cannot be imported again">
+    **Warning message:**
+
+    ```
+    warning MSB4011: "C:\Program Files\dotnet\sdk\6.0.100\Current\Microsoft.Common.props" cannot be imported again.
+    ```
+
+    **Cause:** Same root cause as MSB4019 — legacy `<Import>` statements in the project file are conflicting with the SDK's automatic imports.
+
+    **Resolution:** Remove any `<Import>` statements referencing `Microsoft.Data.Tools.Schema.SqlTasks.targets` or `Microsoft.Common.props` from the `.sqlproj` file.
+  </Accordion>
+
+  <Accordion title="SQL72027: System dacpac file does not exist">
+    **Error message:**
+
+    ```
+    Build error SQL72027: File "...\master.dacpac" does not exist.
+    ```
+
+    **Cause:** A system database reference (such as `master` or `msdb`) was added through Visual Studio, which stores the dacpac path relative to the VS installation. When building from the command line or in CI, that path does not exist.
+
+    **Resolution:** Pass `/p:DacPacRootPath` pointing to the Visual Studio IDE directory when building from the command line:
+
+    ```bash
+    dotnet build /p:DacPacRootPath="C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\IDE"
+    ```
+
+    Alternatively, replace the file-based reference with a NuGet package reference using `Microsoft.SqlServer.Dacpacs.Master`. This is the recommended approach for SDK-style projects and works in CI without any extra configuration. See [package references](/sql-projects/database-references) for details.
+  </Accordion>
+
+  <Accordion title="Unresolved references during build">
+    **Warning message:**
+
+    ```
+    SQL71561: View: [...] has an unresolved reference to object [...].
+    ```
+
+    **Cause:** Your SQL project references objects — tables, views, stored procedures — that exist in another database or are not defined anywhere in the current project.
+
+    **Resolution:** Add a database reference or package reference to bring the external object definitions into the build model.
+
+    - For system databases, add a package reference to `Microsoft.SqlServer.Dacpacs.Master` or `Microsoft.SqlServer.Dacpacs.Msdb`.
+    - For another application database, add an `ArtifactReference` pointing to its `.dacpac`.
+
+    See [database references](/sql-projects/database-references) for full configuration details.
+  </Accordion>
+
+  <Accordion title="SDK version conflicts across multiple projects">
+    **Error:** Projects in the same solution fail to build together because they specify different `Microsoft.Build.Sql` versions.
+
+    **Cause:** When a solution contains multiple SQL projects with database references between them, all projects must use the same SDK version.
+
+    **Resolution:** Use a `global.json` file at the solution root to pin the SDK version. Remove the `Version` attribute from each project's `<Sdk>` element so they all pick up the pinned version.
+
+    ```json
+    {
+        "msbuild-sdks": {
+            "Microsoft.Build.Sql": "0.1.7-preview"
+        }
+    }
+    ```
+
+    With this file in place, the `Version` attribute can be omitted from the `Sdk` element in every project:
+
+    ```xml
+    <Project DefaultTargets="Build">
+      <Sdk Name="Microsoft.Build.Sql" />
+      ...
+    </Project>
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Deployment errors
+
+### BlockOnPossibleDataLoss
+
+If SqlPackage detects that a deployment step could cause data loss — such as dropping a column or shrinking a data type — it blocks the deployment by default.
+
+```
+Error SQL72014: .Net SqlClient Data Provider: Msg 50000, Level 16, State 127, Line 1
+Rows were detected. The schema update is terminating because data loss might occur.
+```
+
+To allow the deployment to proceed when you have verified data loss is acceptable:
+
+```bash
+sqlpackage /Action:Publish \
+  /SourceFile:"bin/Release/MyDatabase.dacpac" \
+  /TargetConnectionString:"<your-connection-string>" \
+  /p:BlockOnPossibleDataLoss=false
+```
+
+<Warning>
+  Only set `BlockOnPossibleDataLoss=false` after reviewing the deployment script with `DeployReport` and confirming the data loss is intentional.
+</Warning>
+
+## Controlling the SDK version
+
+Use `global.json` to pin the `Microsoft.Build.Sql` SDK version across all projects in a repository. This is especially important when you have multiple SQL projects with cross-database references.
+
+```json
+{
+    "msbuild-sdks": {
+        "Microsoft.Build.Sql": "0.1.7-preview"
+    }
+}
+```
+
+Place this file at the root of your repository. The `Version` attribute can then be omitted from the `<Sdk>` element in each `.sqlproj`.
+
+## Telemetry opt-out
+
+`Microsoft.Build.Sql` collects anonymous telemetry during builds. To opt out, set the following environment variable before building:
+
+```bash
+DACFX_TELEMETRY_OPTOUT=1
+```
+
+On Windows:
+
+```bash
+set DACFX_TELEMETRY_OPTOUT=1
+dotnet build
+```
+
+On macOS/Linux:
+
+```bash
+export DACFX_TELEMETRY_OPTOUT=1
+dotnet build
+```
+
+## Related resources
+
+- [GitHub Issues — DacFx](https://github.com/microsoft/DacFx/issues): report bugs or search for existing issues
+- [SqlPackage publish reference](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-publish): full list of publish options including `BlockOnPossibleDataLoss`
+- [Troubleshooting SQL project build](https://learn.microsoft.com/sql/tools/sql-database-projects/howto/troubleshoot-sql-project-build): Microsoft Learn troubleshooting guide
+- [Converting existing SSDT projects](https://learn.microsoft.com/sql/tools/sql-database-projects/howto/convert-original-sql-project): migrate from legacy `.sqlproj` format to the SDK style

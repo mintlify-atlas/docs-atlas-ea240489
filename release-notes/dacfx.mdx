@@ -1,0 +1,397 @@
+---
+title: "Microsoft.SqlServer.DacFx NuGet library release notes"
+description: "Changelog for Microsoft.SqlServer.DacFx NuGet library releases, covering API changes, new SQL platform support, and schema model updates."
+---
+
+Microsoft.SqlServer.DacFx is a .NET library that provides programmatic access to database schema model operations, including deployment, extraction, import, and export of SQL Server databases. You can install it from [NuGet (Microsoft.SqlServer.DacFx)](https://www.nuget.org/packages/Microsoft.SqlServer.DacFx). DacFx version numbers align with SqlPackage version numbers — a given DacFx package version ships with the same-numbered SqlPackage release.
+
+<Note>
+DacFx version numbers match the corresponding SqlPackage CLI version. For example, `Microsoft.SqlServer.DacFx 170.4.43-preview` powers `SqlPackage 170.4.43-preview`.
+</Note>
+
+## Available version series
+
+The following version series are available. Each series contains multiple patch releases.
+
+| Series | Patch releases |
+| :----- | :------------- |
+| 170.4 | 170.4.20-preview, 170.4.34-preview, 170.4.43-preview |
+| 170.3 | 170.3.37-preview, 170.3.54-preview, 170.3.63-preview, 170.3.79-preview, 170.3.83-preview |
+| 170.2 | 170.2.15-preview, 170.2.25-preview, 170.2.32-preview, 170.2.37-preview, 170.2.41-preview, 170.2.55-preview, 170.2.68-preview |
+| 170.1 | 170.1.11-preview, 170.1.23-preview, 170.1.31-preview, 170.1.43-preview, 170.1.47-preview, 170.1.56-preview |
+| 170.0 | 170.0.27-preview, 170.0.33-preview, 170.0.48-preview, 170.0.57-preview, 170.0.64-preview, 170.0.70-preview, 170.0.76-preview, 170.0.82-preview, 170.0.86-preview |
+
+## 170.4 releases
+
+<AccordionGroup>
+
+<Accordion title="170.4.43-preview">
+
+### Fixed
+
+- Fixes [#172](https://github.com/microsoft/DacFx/issues/172).
+- Fixes [#111](https://github.com/microsoft/DacFx/issues/111).
+- Fixes [#774](https://github.com/microsoft/DacFx/issues/774).
+- Fixes a bug when generating SQL files from a project on non-Windows machines.
+
+</Accordion>
+
+<Accordion title="170.4.34-preview">
+
+### Added
+
+- Adds support to extract a database to SQL Project format ([#760](https://github.com/microsoft/DacFx/issues/760)).
+
+### Changed
+
+- Updates `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.191.0`.
+
+</Accordion>
+
+<Accordion title="170.4.20-preview">
+
+### Added
+
+- Adds support for Dynamic data masking in Extract and Publish for Fabric Data Warehouse.
+
+### Fixed
+
+- Fixes [#747](https://github.com/microsoft/DacFx/issues/747).
+- Fixes deploy failures caused by schema-bound function blocking `ALTER TABLE` operations.
+
+### Changed
+
+- Updates `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.179.0`.
+
+</Accordion>
+
+</AccordionGroup>
+
+## 170.3 releases
+
+<AccordionGroup>
+
+<Accordion title="170.3.83-preview">
+
+### Fixed
+
+- Fixes [#637](https://github.com/microsoft/DacFx/issues/637).
+
+### Changed
+
+- Updates `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.157.0`.
+
+</Accordion>
+
+<Accordion title="170.3.79-preview">
+
+### Added
+
+- Enhances permission publishing to include `EXECUTE ON EXTERNAL MODEL` permissions.
+- Extends Vector column support to allow changing the base type.
+
+### Fixed
+
+- Fixes [#604](https://github.com/microsoft/DacFx/issues/604).
+- Fixes [#735](https://github.com/microsoft/DacFx/issues/735).
+
+</Accordion>
+
+<Accordion title="170.3.63-preview">
+
+### Added
+
+- Adds .NET Standard 2.0 support.
+
+### Changed
+
+- Updates `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.147.0`.
+
+</Accordion>
+
+<Accordion title="170.3.54-preview">
+
+### Changed
+
+- Updates `Microsoft.Data.SqlClient` to `6.1.3`.
+
+</Accordion>
+
+<Accordion title="170.3.37-preview">
+
+### Added
+
+- Adds .NET 10 support.
+- Adds support for database options `ACCELERATED_DATABASE_RECOVERY` and `OPTIMIZED_LOCKING`.
+
+### Fixed
+
+- Fixes a bug with deploying to SQL database in Microsoft Fabric when target database includes a security policy.
+- Fixes [#719](https://github.com/microsoft/DacFx/issues/719).
+- Fixes [#713](https://github.com/microsoft/DacFx/issues/713).
+- Fixes [#706](https://github.com/microsoft/DacFx/issues/706).
+
+</Accordion>
+
+</AccordionGroup>
+
+## 170.2 releases
+
+<AccordionGroup>
+
+<Accordion title="170.2.68-preview">
+
+### Fixed
+
+- Fixes a bug with comparing JSON indexes with the default JSON path.
+- Fixes [#476](https://github.com/microsoft/DacFx/issues/476).
+- Fixes the bugs with External Model and dependency to a Database Credential.
+
+### Changed
+
+- Updates ScriptDom version to `170.128.0`.
+
+</Accordion>
+
+<Accordion title="170.2.55-preview">
+
+### Added
+
+- Adds support for 32-bit float vectors.
+- Adds support for the new system functions `AI_GENERATE_CHUNKS`, `JSON_OBJECTAGG`, `AI_GENERATE_EMBEDDINGS`, `VECTOR_SEARCH`, `JSON_ARRAYAGG`, `JSON_QUERY`, and `REGEXP_LIKE`.
+- Adds a new Deploy option to exclude external models from deployment scripts.
+
+### Changed
+
+- Updates ScriptDom version to `170.121.2`.
+
+</Accordion>
+
+<Accordion title="170.2.41-preview">
+
+### Added
+
+- Adds support for External Model.
+
+### Changed
+
+- Updates ScriptDom version to `170.100.0`.
+
+</Accordion>
+
+<Accordion title="170.2.37-preview">
+
+### Fixed
+
+- Fixes a bug with exporting from Managed Instance database.
+
+</Accordion>
+
+<Accordion title="170.2.32-preview">
+
+### Added
+
+- Adds support for External Model.
+
+</Accordion>
+
+<Accordion title="170.2.25-preview">
+
+### Added
+
+- Adds support for Vector Index.
+
+</Accordion>
+
+<Accordion title="170.2.15-preview">
+
+### Added
+
+- Adds support for JSON Index.
+
+</Accordion>
+
+</AccordionGroup>
+
+## 170.1 releases
+
+<AccordionGroup>
+
+<Accordion title="170.1.56-preview">
+
+### Added
+
+- Adds support for Data virtualization with Azure SQL Database.
+
+</Accordion>
+
+<Accordion title="170.1.47-preview">
+
+### Added
+
+- Adds new publish options `IgnorePreDeployScript` and `IgnorePostDeployScript` ([#647](https://github.com/microsoft/DacFx/issues/647)).
+
+### Changed
+
+- Updates ScriptDom version to `170.0.64`.
+- Changes the ScriptDom parser and generator to use a platform-specific one for Fabric DW.
+
+</Accordion>
+
+<Accordion title="170.1.43-preview">
+
+### Fixed
+
+- Fixes an issue where the incorrect syntax for `CREATE USER` is extracted from Fabric SQL DB ([#631](https://github.com/microsoft/DacFx/issues/631)).
+- Fixes an issue where project build fails on `CREATE USER` with SID/TYPE ([#632](https://github.com/microsoft/DacFx/issues/632)).
+- Fixes an issue when exporting a Fabric SQL DB with `AlterAnyExternalMirror` permission ([#648](https://github.com/microsoft/DacFx/issues/648)).
+
+</Accordion>
+
+<Accordion title="170.1.31-preview">
+
+### Fixed
+
+- Fixes a deployment issue with clustered columnstore indexes ([#264](https://github.com/microsoft/DacFx/issues/264)).
+- Fixes a deployment issue where server objects are included for Fabric SQL DB ([#646](https://github.com/microsoft/DacFx/issues/646)).
+
+### Changed
+
+- Updates ScriptDom version to `170.0.44`.
+
+</Accordion>
+
+<Accordion title="170.1.23-preview">
+
+### Fixed
+
+- Fixes the interactive mode of Key Vault Authenticator.
+- Fixes a bug with publishing tables containing foreign key constraints to a Warehouse in Microsoft Fabric.
+- Fixes a bug with importing a new column to the table with the primary key to a Warehouse in Microsoft Fabric.
+
+</Accordion>
+
+<Accordion title="170.1.11-preview">
+
+### Fixed
+
+- Fixes an issue with `DbScopedconfigMaxDOPSecondary` property ([#597](https://github.com/microsoft/DacFx/issues/597)).
+
+</Accordion>
+
+</AccordionGroup>
+
+## 170.0 releases
+
+<AccordionGroup>
+
+<Accordion title="170.0.86-preview">
+
+### Changed
+
+- Sets default value of compatibility level to `170` for SQL DB.
+
+</Accordion>
+
+<Accordion title="170.0.82-preview">
+
+### Fixed
+
+- Fixes [#589](https://github.com/microsoft/DacFx/issues/589).
+
+</Accordion>
+
+<Accordion title="170.0.76-preview">
+
+### Fixed
+
+- Fixes [#567](https://github.com/microsoft/DacFx/issues/567).
+
+</Accordion>
+
+<Accordion title="170.0.70-preview">
+
+### Added
+
+- Added a build error for using vector column in clustered or column store indexes.
+- Added new error message for loading extensions built with older versions of DacFx.
+
+### Fixed
+
+- Fixes [#513](https://github.com/microsoft/DacFx/issues/513).
+
+### Changed
+
+- Changed the error code for old sensitivity syntax warning from `71001` to `70648`.
+
+</Accordion>
+
+<Accordion title="170.0.64-preview">
+
+### Added
+
+- Utilize bcp files to export data that includes unsupported PolyBase types such as `sql_variant`, UDT, CLR UDT, and tables with columns containing LOB data larger than 1 MB. This enables a Parquet and BCP hybrid approach to manage unsupported PolyBase types and limitations.
+
+</Accordion>
+
+<Accordion title="170.0.57-preview">
+
+### Added
+
+- Adds support for extracting table data with Parquet format for tables with column types `timestamps`, `rowversions`, `ntext`, `text`, `image`, `json`, `xml`, and `vector`.
+
+### Fixed
+
+- Fixes [#453](https://github.com/microsoft/DacFx/issues/453).
+
+</Accordion>
+
+<Accordion title="170.0.48-preview">
+
+### Breaking change
+
+- Removed support for .NET Framework 4.6.
+
+### Added
+
+- Added readme to NuGet package.
+
+### Changed
+
+- Added support for .NET Framework 4.7.
+- Updated `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.18.0`.
+
+</Accordion>
+
+<Accordion title="170.0.33-preview">
+
+### Breaking change
+
+- `Dacunpack.exe` is removed from `C:\Program Files\Microsoft SQL Server\170\DAC\bin`. The unpack functionality is now part of the SqlPackage `extract` action.
+
+### Added
+
+- Added a new extract action option to unpack a given `.dacpac` file to a folder.
+
+### Fixed
+
+- Optimized the query for getting table size estimate.
+
+</Accordion>
+
+<Accordion title="170.0.27-preview">
+
+### Breaking changes
+
+- Updated the public key in the DLLs included in this package. This change enhances assembly security and integrity but may cause breaking changes in C# applications that reference these assemblies by strong name.
+- Removed support for .NET Standard.
+- Dropped support for .NET 6.
+
+### Changed
+
+- Updated `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.12.0`.
+- Added readme to NuGet package.
+
+</Accordion>
+
+</AccordionGroup>

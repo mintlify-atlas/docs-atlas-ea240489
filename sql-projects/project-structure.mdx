@@ -1,0 +1,99 @@
+---
+title: "SQL project file structure and build organization"
+description: "Learn how Microsoft.Build.Sql SQL projects are structured, how SQL files are included in build, and how to organize objects by schema."
+---
+
+Every `*.sql` file under your project root is automatically discovered and compiled — you don't need to list individual files in the `.sqlproj`. The `Microsoft.Build.Sql` SDK sets a default globbing pattern of `**/*.sql` so that any file you add to a subfolder is picked up on the next `dotnet build` without touching the project file. This makes it easy to add new tables, procedures, and views by simply dropping `.sql` files into the appropriate folder.
+
+## Minimum .sqlproj file
+
+The only required properties are the SDK declaration and the target platform (`DSP`). Everything else has a default provided by the SDK.
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+  <PropertyGroup>
+    <Name>sample</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider</DSP>
+    <ModelCollation>1033, CI</ModelCollation>
+  </PropertyGroup>
+</Project>
+```
+
+## Target platform (DSP)
+
+The `DSP` property tells the build which SQL Server feature set to validate against and is stored in the `.dacpac` as a deployment guard. Valid values are:
+
+| Value | Platform |
+|---|---|
+| `Microsoft.Data.Tools.Schema.Sql.Sql120DatabaseSchemaProvider` | SQL Server 2014 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider` | SQL Server 2016 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql140DatabaseSchemaProvider` | SQL Server 2017 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider` | SQL Server 2019 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider` | SQL Server 2022 (161.6374.0+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider` | Azure SQL Database |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDbFabricDatabaseSchemaProvider` | Microsoft Fabric SQL Database (162.3+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDwDatabaseSchemaProvider` | Azure Synapse Analytics |
+| `Microsoft.Data.Tools.Schema.Sql.SqlServerlessDatabaseSchemaProvider` | Azure Synapse Serverless (161.8089.0+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDwUnifiedDatabaseSchemaProvider` | Synapse Dedicated / Fabric DW (162.1+) |
+
+## Default SQL file globbing
+
+The SDK sets `**/*.sql` as the default include pattern, so the following are all equivalent from the build's perspective:
+
+- `Tables/dbo.Product.sql`
+- `StoredProcedures/dbo.GetProductInfo.sql`
+- `dbo.SomeTable.sql` (in the project root)
+
+<Note>
+  Files listed as `<PreDeploy>` or `<PostDeploy>` items are automatically removed from model build — you don't need to exclude them manually.
+</Note>
+
+### Excluding a file from build
+
+To keep a `.sql` file in the repository but exclude it from the database model, add a `Build Remove` item to your `.sqlproj`:
+
+```xml
+<ItemGroup>
+  <Build Remove="Scripts/scratch.sql" />
+</ItemGroup>
+```
+
+## Recommended folder structure
+
+Group objects by schema and object type to keep large projects navigable:
+
+```
+MyDatabase/
+├── MyDatabase.sqlproj
+├── Tables/
+│   ├── dbo.Product.sql
+│   └── dbo.ProductOrder.sql
+├── StoredProcedures/
+│   └── dbo.GetProductInfo.sql
+├── Views/
+│   └── dbo.ProductSummary.sql
+├── Functions/
+│   └── dbo.CalculateTotal.sql
+├── Security/
+│   └── Roles.sql
+└── Scripts/
+    ├── Script.PreDeployment.sql
+    └── Script.PostDeployment.sql
+```
+
+<Tip>
+  The build automatically finds files in all subfolders, so reorganizing files never requires project file edits. Rename and move freely.
+</Tip>
+
+## Key SDK-provided properties
+
+The following properties are set by the SDK in `Sdk.props` and do not need to appear in your `.sqlproj`:
+
+| Property | Value | Purpose |
+|---|---|---|
+| `TargetExt` | `.dacpac` | Output file extension |
+| `OutputType` | `Database` | MSBuild project type |
+| `EnableDefaultSqlItems` | `true` | Activates `**/*.sql` globbing |
+| `AppendTargetFrameworkToOutputPath` | `false` | Keeps output paths clean |

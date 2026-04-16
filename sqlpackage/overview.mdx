@@ -1,0 +1,92 @@
+---
+title: "SqlPackage CLI: database schema packaging and deployment"
+description: "SqlPackage is a cross-platform CLI for creating, deploying, extracting, and comparing SQL Server and Azure SQL database schemas via dacpac."
+---
+
+SqlPackage is a cross-platform command-line utility built on top of DacFx for working with `.dacpac` and `.bacpac` packages. You can use it to deploy database schemas, capture schemas from live databases, move data between environments, and generate deployment reports — all from Windows, macOS, and Linux without any additional tooling.
+
+## Available actions
+
+SqlPackage supports the following actions. Each action is specified with the `/Action:` (or `/a:`) parameter.
+
+| Action | Purpose |
+|--------|---------|
+| **Publish** | Deploy a dacpac schema to a target database, applying only the changes needed |
+| **Extract** | Create a dacpac from a live SQL Server or Azure SQL database |
+| **Export** | Export schema and data from a database to a bacpac file |
+| **Import** | Import a bacpac into a new or existing database |
+| **Script** | Generate a T-SQL deployment script without executing it |
+| **DeployReport** | Generate an XML report of changes that would be deployed |
+| **DriftReport** | Generate a report of schema changes made since the last deployment |
+
+## Installation
+
+Install SqlPackage as a .NET global tool. The .NET SDK 8 or higher is required.
+
+```bash
+dotnet tool install -g microsoft.sqlpackage
+```
+
+After installation, run `sqlpackage` from any terminal to verify:
+
+```bash
+sqlpackage /version
+```
+
+## Common parameters
+
+These parameters apply across multiple SqlPackage actions.
+
+| Parameter | Description |
+|-----------|-------------|
+| `/SourceFile` | Path to the source `.dacpac` or `.bacpac` file (for Publish, Import) |
+| `/TargetFile` | Path to the output file (for Extract, Export, Script, DeployReport, DriftReport) |
+| `/SourceConnectionString` | Connection string for the source database (for Extract, Export) |
+| `/TargetConnectionString` | Connection string for the target database (for Publish, Import) |
+| `/TargetServerName` | Target server name, used together with `/TargetDatabaseName` |
+| `/TargetDatabaseName` | Target database name, used together with `/TargetServerName` |
+
+## Authentication options
+
+<Tabs>
+  <Tab title="SQL authentication">
+    Pass credentials directly in the connection string:
+
+    ```bash
+    sqlpackage /Action:Publish /SourceFile:"MyApp.dacpac" \
+        /TargetConnectionString:"Server=tcp:{server}.database.windows.net,1433;Initial Catalog={database};User ID={user};Password={password};Encrypt=True;"
+    ```
+  </Tab>
+  <Tab title="Active Directory Interactive">
+    Use Azure AD interactive authentication (prompts for MFA in a browser):
+
+    ```bash
+    sqlpackage /Action:Publish /SourceFile:"MyApp.dacpac" \
+        /TargetConnectionString:"Data Source={server}.database.windows.net;Initial Catalog={database};Authentication=Active Directory Interactive"
+    ```
+  </Tab>
+  <Tab title="Connection string only">
+    Supply the full connection string with all required properties for your authentication method. SqlPackage accepts any valid ADO.NET connection string format.
+  </Tab>
+</Tabs>
+
+<Tip>
+  Use the `/p:` prefix to pass publish options directly on the command line. For example, `/p:IncludeCompositeObjects=true` includes objects from database references during deployment.
+</Tip>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Publish" icon="rocket" href="/sqlpackage/publish">
+    Deploy a dacpac schema to a database.
+  </Card>
+  <Card title="Extract" icon="database" href="/sqlpackage/extract">
+    Create a dacpac from a live database.
+  </Card>
+  <Card title="Export and Import" icon="arrow-right-arrow-left" href="/sqlpackage/export-import">
+    Move data with bacpac files.
+  </Card>
+  <Card title="Script and DeployReport" icon="file-code" href="/sqlpackage/export-import#script-and-deployreport">
+    Preview changes before applying them.
+  </Card>
+</CardGroup>

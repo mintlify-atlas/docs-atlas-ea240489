@@ -1,0 +1,72 @@
+---
+title: "Pre and post-deployment scripts in SQL database projects"
+description: "Add pre and post-deployment scripts to your SQL project to run T-SQL before or after schema deployment, for data seeding and migrations."
+---
+
+Pre- and post-deployment scripts are T-SQL files that ship inside your `.dacpac` but run outside the schema deployment pipeline. They give you a place to execute imperative logic — data population, configuration inserts, migration helpers — that cannot be expressed as declarative object definitions. A pre-deployment script runs before SqlPackage applies schema changes; a post-deployment script runs after the schema is fully up to date.
+
+## Declaring scripts in the project file
+
+Register scripts by adding `PreDeploy` or `PostDeploy` items to an `ItemGroup` in your `.sqlproj`:
+
+```xml
+<ItemGroup>
+  <PreDeploy Include="Script.PreDeployment1.sql" />
+</ItemGroup>
+<ItemGroup>
+  <PostDeploy Include="Script.PostDeployment1.sql" />
+</ItemGroup>
+```
+
+The path is relative to the `.sqlproj` file. You can use subdirectory paths such as `Scripts/Script.PostDeployment1.sql`.
+
+<Note>
+  Scripts declared as `PreDeploy` or `PostDeploy` are automatically excluded from the database model build. They are packaged into the `.dacpac` but never compiled into the object model, so unresolved object references inside these scripts do not produce build warnings or errors.
+</Note>
+
+## Execution order
+
+When SqlPackage publishes a `.dacpac`, it executes in the following sequence:
+
+1. **Pre-deployment script** — runs once, before any schema changes are applied.
+2. **Schema deployment** — tables, views, procedures, and other objects are created, altered, or dropped to match the model.
+3. **Post-deployment script** — runs once, after all schema changes are complete.
+
+## Use cases
+
+**Data seeding and reference data population** is the most common use for post-deployment scripts. The script can use merge or conditional inserts to populate lookup tables without risking duplicate rows on repeated deployments:
+
+```sql
+-- Script.PostDeployment1.sql
+-- Populate application settings reference data
+MERGE INTO dbo.AppSettings AS target
+USING (
+    VALUES
+        ('Theme',       'light'),
+        ('Language',    'en-US'),
+        ('Timezone',    'UTC')
+) AS source (SettingKey, SettingValue)
+ON target.SettingKey = source.SettingKey
+WHEN NOT MATCHED THEN
+    INSERT (SettingKey, SettingValue)
+    VALUES (source.SettingKey, source.SettingValue);
+```
+
+**Pre-deployment cleanup** is useful when a schema change requires data to be moved or a constraint to be dropped before the schema diff can be applied cleanly:
+
+```sql
+-- Script.PreDeployment1.sql
+-- Remove rows that would violate the new NOT NULL constraint
+DELETE FROM dbo.Orders WHERE CustomerID IS NULL;
+```
+
+<Tip>
+  Keep pre- and post-deployment scripts idempotent — write them so they produce the same result whether run once or ten times. This makes repeated deployments safe and simplifies CI/CD pipelines.
+</Tip>
+
+**Other common patterns:**
+
+- Inserting rows into new columns before the column becomes `NOT NULL`
+- Granting permissions to application roles after schema creation
+- Calling stored procedures that perform one-time data transformations
+- Setting database-scoped configurations that fall outside the model

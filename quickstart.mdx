@@ -1,80 +1,127 @@
 ---
-title: "Quickstart"
-description: "Start building awesome documentation in minutes"
+title: "Quickstart: Build and deploy your first SQL project"
+description: "Create a SQL project, add database objects, build a dacpac, and publish it to a SQL Server or Azure SQL database in under 10 minutes."
 ---
 
-## Get started in three steps
+In this quickstart you will install SqlPackage and the SQL project templates, scaffold a new project, add tables and a stored procedure, build a `.dacpac`, and publish it to a database. By the end you will have a working SQL project ready to extend and deploy through CI/CD.
 
-Get your documentation site running locally and make your first customization.
+<Note>
+  Microsoft.Build.Sql requires .NET 8 or higher. Verify your installation with `dotnet --version` before starting.
+</Note>
 
-### Step 1: Set up your local environment
+<Steps>
+  <Step title="Install SqlPackage">
+    Install SqlPackage as a .NET global tool. It is available for Windows, macOS, and Linux.
 
-<AccordionGroup>
-  <Accordion icon="copy" title="Clone your docs locally">
-    During the onboarding process, you created a GitHub repository with your docs content if you didn't already have one. You can find a link to this repository in your [dashboard](https://dashboard.mintlify.com).
-    
-    To clone the repository locally so that you can make and preview changes to your docs, follow the [Cloning a repository](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) guide in the GitHub docs.
-  </Accordion>
-  <Accordion icon="rectangle-terminal" title="Start the preview server">
-    1. Install the Mintlify CLI: `npm i -g mint`
-    2. Navigate to your docs directory and run: `mint dev`
-    3. Open `http://localhost:3000` to see your docs live!
-    
-    <Tip>Your preview updates automatically as you edit files.</Tip>
-  </Accordion>
-</AccordionGroup>
+    ```bash
+    dotnet tool install -g microsoft.sqlpackage
+    ```
 
-### Step 2: Deploy your changes
+    Verify the installation:
 
-<AccordionGroup>
-  <Accordion icon="github" title="Install our GitHub app">
-    Install the Mintlify GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
-    
-    Our GitHub app automatically deploys your changes to your docs site, so you don't need to manage deployments yourself.
-</Accordion>
-<Accordion icon="palette" title="Update your site name and colors">
-    For a first change, let's update the name and colors of your docs site.
+    ```bash
+    sqlpackage /version
+    ```
 
-    1. Open `docs.json` in your editor.
-    2. Change the `"name"` field to your project name.
-    3. Update the `"colors"` to match your brand.
-    4. Save and see your changes instantly at `http://localhost:3000`.
+    Alternatively, you can download SqlPackage as a zip file from the [SqlPackage download page](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-download).
+  </Step>
 
-    <Tip>Try changing the primary color to see an immediate difference!</Tip>
-  </Accordion>
-</AccordionGroup>
+  <Step title="Install SQL project templates">
+    Install the Microsoft.Build.Sql.Templates NuGet package to make the `sqlproj` and `sqlcodeanalysis` templates available to the `dotnet new` command.
 
-### Step 3: Go live
+    ```bash
+    dotnet new install Microsoft.Build.Sql.Templates
+    ```
+  </Step>
 
-<Accordion icon="rocket" title="Publish your docs">
-  1. Commit and push your changes.
-  2. Your docs will update and be live in moments!
-</Accordion>
+  <Step title="Create a SQL project">
+    Create a new SQL project named `ProductsTutorial` using the `sqlproj` template.
+
+    ```bash
+    dotnet new sqlproj -n ProductsTutorial
+    ```
+
+    This creates a `ProductsTutorial/` folder containing a `ProductsTutorial.sqlproj` file. Any `.sql` files you add to this folder are automatically included in the build.
+  </Step>
+
+  <Step title="Add a table">
+    Create a file named `dbo.Product.sql` inside the `ProductsTutorial/` folder with the following content:
+
+    ```sql
+    CREATE TABLE [dbo].[Product](
+        [ProductID] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [ProductName] [nvarchar](200) NOT NULL
+    );
+    ```
+
+    <Tip>
+      A common convention is to organize files by schema and object type — for example, `Tables/dbo.Product.sql` and `StoredProcedures/dbo.GetProductInfo.sql`. The build process finds all `.sql` files in the project folder and its subfolders automatically.
+    </Tip>
+  </Step>
+
+  <Step title="Build the project">
+    Run `dotnet build` from inside the project folder to compile the `.sql` files into a `.dacpac` artifact.
+
+    ```bash
+    dotnet build
+    ```
+
+    The output `.dacpac` is written to `bin/Debug/ProductsTutorial.dacpac`.
+  </Step>
+
+  <Step title="Add more database objects">
+    Extend the project with a stored procedure and a second table. Create `dbo.GetProductInfo.sql`:
+
+    ```sql
+    CREATE PROCEDURE [dbo].[GetProductInfo]
+        @ProductID INT
+    AS
+    BEGIN
+        SELECT P.ProductID
+            , P.ProductName
+            , SUM(PO.Quantity) AS TotalQuantity
+        FROM dbo.Product P
+        LEFT JOIN dbo.ProductOrder PO ON PO.ProductID = P.ProductID
+        WHERE P.ProductID = @ProductID
+        GROUP BY P.ProductID, P.ProductName
+    END
+    ```
+
+    The stored procedure references a table that does not exist yet. Create `dbo.ProductOrder.sql` to resolve the dependency:
+
+    ```sql
+    CREATE TABLE [dbo].[ProductOrder](
+        [ProductOrderID] [int] IDENTITY(1,1) NOT NULL PRIMARY KEY,
+        [ProductID] [int] NOT NULL FOREIGN KEY REFERENCES dbo.Product(ProductID),
+        [Quantity] [int] NOT NULL
+    );
+    ```
+
+    Run `dotnet build` again to confirm the project compiles without errors.
+  </Step>
+
+  <Step title="Publish to a database">
+    Use the SqlPackage `publish` action to deploy the `.dacpac` to a target database. The example below targets an Azure SQL Database using SQL authentication.
+
+    ```bash
+    sqlpackage /Action:Publish /SourceFile:"bin/Debug/ProductsTutorial.dacpac" \
+        /TargetConnectionString:"Server=tcp:{yourserver}.database.windows.net,1433;Initial Catalog=ProductsTutorial;User ID=sqladmin;Password={your_password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+    ```
+
+    When the publish command completes, connect to the database to view the created objects. Running the same command again on an updated project will apply only the schema changes — there is no need to drop and recreate the database.
+  </Step>
+</Steps>
 
 ## Next steps
 
-Now that you have your docs running, explore these key features:
-
-<CardGroup cols={2}>
-
-<Card title="Write Content" icon="pen-to-square" href="/essentials/markdown">
-  Learn MDX syntax and start writing your documentation.
-</Card>
-
-<Card title="Customize style" icon="palette" href="/essentials/settings">
-  Make your docs match your brand perfectly.
-</Card>
-
-<Card title="Add code examples" icon="square-code" href="/essentials/code">
-  Include syntax-highlighted code blocks.
-</Card>
-
-<Card title="API documentation" icon="code" href="/api-reference/introduction">
-  Auto-generate API docs from OpenAPI specs.
-</Card>
-
+<CardGroup cols={3}>
+  <Card title="SQL projects overview" icon="folder-open" href="/sql-projects/overview">
+    Learn about project structure, database references, SQLCMD variables, and pre/post-deployment scripts.
+  </Card>
+  <Card title="SqlPackage CLI" icon="terminal" href="/sqlpackage/overview">
+    Explore all SqlPackage actions: Publish, Extract, Export, Import, and more.
+  </Card>
+  <Card title="CI/CD pipelines" icon="arrows-rotate" href="/guides/cicd-pipelines">
+    Automate builds and deployments with GitHub Actions and Azure DevOps.
+  </Card>
 </CardGroup>
-
-<Note>
-  **Need help?** See our [full documentation](https://mintlify.com/docs) or join our [community](https://mintlify.com/community).
-</Note>

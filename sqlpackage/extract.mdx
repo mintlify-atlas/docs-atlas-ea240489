@@ -1,0 +1,109 @@
+---
+title: "SqlPackage Extract: create a dacpac from a database"
+description: "The SqlPackage Extract action creates a dacpac file from a live SQL Server or Azure SQL database, capturing the complete schema definition."
+---
+
+The Extract action connects to a live database and captures its schema as a `.dacpac` file. You would use Extract when you want to source-control an existing database that was not originally created from a SQL project, create a baseline dacpac before beginning schema changes, or bootstrap a new SQL project from an existing database's structure. The resulting dacpac can be used directly with Publish, or broken into individual SQL files to form a SQL project.
+
+## Basic syntax
+
+```bash
+sqlpackage /Action:Extract /TargetFile:<output-path> /SourceConnectionString:<connection-string>
+```
+
+## Example: extract to a SQL project folder
+
+This example extracts an existing database into a folder of individual SQL files organized by schema and object type — the recommended starting point for creating a new SQL project:
+
+```bash
+sqlpackage /a:Extract /tf:YourProjectFolder \
+    /scs:"Data Source=yourservername;Initial Catalog=yourdatabasename;Authentication=Active Directory Interactive" \
+    /p:ExtractTarget=SchemaObjectType
+```
+
+After running this command, `YourProjectFolder` will contain `.sql` files arranged by object type (tables, views, stored procedures, etc.). You can then create a `.sqlproj` file in that folder using the `dotnet new sqlproj` template and build from there.
+
+## Key extract parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `/TargetFile` | Path for the output `.dacpac` file or folder |
+| `/SourceConnectionString` | Connection string for the source database |
+| `/p:ExtractTarget` | Controls the output format. `File` (default) produces a single `.dacpac`; `SchemaObjectType` produces a folder of `.sql` files grouped by schema and object type |
+| `/p:IgnoreExtendedProperties` | Exclude extended properties from the extract. Useful when extended properties cause noise in source control diffs |
+| `/p:VerifyExtraction` | Verify that the extracted dacpac is valid after extraction. Defaults to `true` |
+
+## Extract targets
+
+<Tabs>
+  <Tab title="Single dacpac file">
+    Produces a single `.dacpac` binary. This is the default and is suitable for use as a deployment artifact or as a database reference in other SQL projects.
+
+    ```bash
+    sqlpackage /Action:Extract \
+        /TargetFile:"MyDatabase.dacpac" \
+        /SourceConnectionString:"Data Source={server};Initial Catalog={database};Authentication=Active Directory Interactive"
+    ```
+  </Tab>
+  <Tab title="SchemaObjectType folder">
+    Produces a folder of individual `.sql` files, organized by schema and object type. Use this when you want to import the database into a SQL project and track changes in source control.
+
+    ```bash
+    sqlpackage /Action:Extract \
+        /TargetFile:"MyProjectFolder" \
+        /SourceConnectionString:"Data Source={server};Initial Catalog={database};Authentication=Active Directory Interactive" \
+        /p:ExtractTarget=SchemaObjectType
+    ```
+  </Tab>
+</Tabs>
+
+## Import an existing database into a SQL project
+
+Use this workflow to bring an existing database under source control as a SQL project:
+
+<Steps>
+  <Step title="Extract the database schema">
+    Run SqlPackage Extract with `SchemaObjectType` to produce individual SQL files:
+
+    ```bash
+    sqlpackage /Action:Extract \
+        /TargetFile:MyProjectFolder \
+        /SourceConnectionString:"Data Source={server};Initial Catalog={database};Authentication=Active Directory Interactive" \
+        /p:ExtractTarget=SchemaObjectType
+    ```
+  </Step>
+  <Step title="Install SQL project templates">
+    Install the `Microsoft.Build.Sql.Templates` package to get the `sqlproj` project template:
+
+    ```bash
+    dotnet new install Microsoft.Build.Sql.Templates
+    ```
+  </Step>
+  <Step title="Create the SQL project file">
+    Create a new SQL project file in the folder that was populated by Extract:
+
+    ```bash
+    dotnet new sqlproj -n MyProjectFolder -o MyProjectFolder
+    ```
+  </Step>
+  <Step title="Build the project">
+    Run `dotnet build` to compile the extracted SQL files into a dacpac and confirm there are no errors:
+
+    ```bash
+    dotnet build MyProjectFolder
+    ```
+  </Step>
+  <Step title="Publish to a database">
+    Deploy the project dacpac back to the database (or a different target) using SqlPackage Publish:
+
+    ```bash
+    sqlpackage /Action:Publish \
+        /SourceFile:"MyProjectFolder/bin/Debug/MyProjectFolder.dacpac" \
+        /TargetConnectionString:{connection_string}
+    ```
+  </Step>
+</Steps>
+
+<Tip>
+  After extracting, add the `bin/` and `obj/` folders to your `.gitignore` before committing. Run `dotnet new gitignore` in the project folder to generate the standard .NET gitignore automatically.
+</Tip>

@@ -1,0 +1,138 @@
+---
+title: "Convert an existing SSDT SQL project to SDK style"
+description: "Migrate a legacy Visual Studio SSDT or Azure Data Studio SQL project to the Microsoft.Build.Sql SDK format with this step-by-step guide."
+---
+
+If you have a SQL project created with the legacy Visual Studio SQL Server Data Tools (SSDT) format or an older Azure Data Studio project, you can migrate it to the `Microsoft.Build.Sql` SDK-style format. SDK-style projects build with `dotnet build`, have simpler project files, and work in CI/CD without a full Visual Studio installation. Depending on how much the original project was customized, the conversion can take anywhere from a few minutes to an hour.
+
+<Steps>
+  <Step title="Build the existing project and save the dacpac">
+    Before making any changes, produce a known-good `.dacpac` from the current project. You will compare this against the output of the converted project to confirm no objects were lost.
+
+    ```bash
+    # Build with MSBuild (full framework) before conversion
+    msbuild MyDatabase.sqlproj /p:Configuration=Release
+    ```
+
+    Copy the resulting `.dacpac` from `bin/Release/` to a safe location outside the project folder.
+  </Step>
+
+  <Step title="Add the SDK declaration to the .sqlproj file">
+    Open the `.sqlproj` in any text editor and add the `Sdk` element as the first child of the `<Project>` tag:
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Project DefaultTargets="Build" ToolsVersion="4.0">
+      <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+      ...
+    </Project>
+    ```
+
+    <Tip>
+      Check [NuGet](https://www.nuget.org/packages/Microsoft.Build.Sql) for the latest stable version and use that instead of `2.1.0`.
+    </Tip>
+  </Step>
+
+  <Step title="Remove the old Import statements">
+    Legacy SSDT projects contain auto-generated `<Import>` elements that are replaced by the SDK. Remove these two statements:
+
+    ```xml
+    <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props"
+            Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+    ```
+
+    ```xml
+    <Import Condition="..." Project="...\Microsoft.Data.Tools.Schema.SqlTasks.targets"/>
+    ```
+
+    <Warning>
+      Only remove the auto-generated `<Import>` statements that come from SSDT or ADS. Keep any custom `<Import>` targets you added yourself, such as company-wide MSBuild extensions.
+    </Warning>
+  </Step>
+
+  <Step title="Remove redundant explicit Build Include items">
+    Legacy projects list every `.sql` file explicitly:
+
+    ```xml
+    <!-- Before: explicit file list (remove these) -->
+    <ItemGroup>
+      <Build Include="Tables\dbo.Product.sql" />
+      <Build Include="Tables\dbo.ProductOrder.sql" />
+      <Build Include="StoredProcedures\dbo.GetProductInfo.sql" />
+    </ItemGroup>
+    ```
+
+    The SDK's default globbing pattern `**/*.sql` picks up all SQL files automatically, so you can delete all `<Build Include="*.sql"/>` entries. If you need to exclude a specific file, use `<Build Remove="filename.sql"/>` instead.
+
+    ```xml
+    <!-- After: only exclusions needed (if any) -->
+    <ItemGroup>
+      <Build Remove="Scripts/scratch.sql" />
+    </ItemGroup>
+    ```
+  </Step>
+
+  <Step title="Remove build configuration and platform properties">
+    Properties such as build configurations, platform settings, and output path declarations can be removed because the SDK provides them with sensible defaults. The minimum project file looks like:
+
+    ```xml
+    <?xml version="1.0" encoding="utf-8"?>
+    <Project DefaultTargets="Build">
+      <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+      <PropertyGroup>
+        <Name>MyDatabase</Name>
+        <DSP>Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider</DSP>
+      </PropertyGroup>
+    </Project>
+    ```
+
+    Properties you can safely remove include `<VisualStudioVersion>`, `<SccProjectName>`, `<SccLocalPath>`, `<SccAuxPath>`, `<SccProvider>`, and the entire `<PropertyGroup>` blocks for `Debug` and `Release` configurations if they only set `OutputPath`.
+  </Step>
+
+  <Step title="Build and compare the dacpac">
+    Run `dotnet build` and verify the output:
+
+    ```bash
+    dotnet build MyDatabase.sqlproj
+    ```
+
+    Compare the new `.dacpac` against the one you saved in step 1 using SqlPackage schema compare to confirm all objects are present:
+
+    ```bash
+    SqlPackage /Action:DeployReport \
+      /SourceFile:bin/Debug/MyDatabase.dacpac \
+      /TargetFile:MyDatabase-before.dacpac \
+      /OutputPath:comparison-report.xml
+    ```
+
+    If the report shows unexpected drops or additions, review the project file for files that may have been inadvertently excluded or included.
+  </Step>
+</Steps>
+
+## SDK version pinning with global.json
+
+To ensure every developer and CI agent uses the same SDK version, add a `global.json` file alongside your `.sqlproj`:
+
+```json
+{
+  "msbuild-sdks": {
+    "Microsoft.Build.Sql": "2.1.0"
+  }
+}
+```
+
+This overrides the version declared inside the `.sqlproj` and is the recommended approach for teams that need reproducible builds.
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="MSB4019: The imported project was not found">
+    This error appears when an old `<Import>` statement references a file that no longer exists on the machine — typically `Microsoft.Data.Tools.Schema.SqlTasks.targets` from a full SSDT installation. Remove the `<Import>` element as described in step 3. If the import is intentional, ensure the SSDT workload is installed in Visual Studio.
+  </Accordion>
+  <Accordion title="Duplicate Build items warning">
+    If you left explicit `<Build Include="..."/>` entries alongside the SDK's default globbing, the build will warn about duplicate items and provide a link to the upgrade guide. Remove all explicit `<Build Include="*.sql"/>` entries as described in step 4.
+  </Accordion>
+  <Accordion title="Files missing from Visual Studio Solution Explorer">
+    SDK-style projects rely on globbing, which Visual Studio SSDT may not display correctly in Solution Explorer for files that are not explicitly listed. This is a known limitation. The files are still included in the build. Support for implicit glob display in SSDT Solution Explorer is planned for a future release.
+  </Accordion>
+</AccordionGroup>

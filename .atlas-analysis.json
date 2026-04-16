@@ -1,0 +1,94 @@
+{
+  "projectType": "data-platform",
+  "projectName": "DacFx & SqlPackage",
+  "projectDescription": "A suite of Microsoft tools and libraries for declarative SQL database development, packaging, and deployment across SQL Server and Azure SQL environments.",
+  "theme": "aspen",
+  "primaryColor": "#04a4ec",
+  "lightColor": "#bcbc04",
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "SQL Projects",
+            "pages": [
+              "sql-projects/overview",
+              "sql-projects/project-structure",
+              "sql-projects/database-references",
+              "sql-projects/sqlcmd-variables",
+              "sql-projects/pre-post-deployment-scripts",
+              "sql-projects/convert-existing-project"
+            ]
+          },
+          {
+            "group": "SqlPackage CLI",
+            "pages": [
+              "sqlpackage/overview",
+              "sqlpackage/publish",
+              "sqlpackage/extract",
+              "sqlpackage/export-import"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/cicd-pipelines",
+              "guides/code-analysis",
+              "guides/target-platforms",
+              "guides/troubleshooting"
+            ]
+          },
+          {
+            "group": "Release Notes",
+            "pages": [
+              "release-notes/microsoft-build-sql",
+              "release-notes/sqlpackage",
+              "release-notes/dacfx"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "SDK-style SQL projects with MSBuild support (Microsoft.Build.Sql)",
+    "Cross-platform CLI for dacpac/bacpac packaging and deployment (SqlPackage)",
+    "Database schema portability across SQL Server versions and Azure SQL environments",
+    "Declarative database development with T-SQL stored as source code",
+    "Database references and NuGet package references for multi-database projects",
+    "SQLCMD variable substitution for environment-specific deployments",
+    "Pre/post-deployment scripts for data seeding and migrations",
+    "T-SQL code analysis with custom rules support",
+    "System dacpac packages for master, msdb, Azure SQL, Synapse, and Fabric",
+    "ScriptDOM T-SQL parser library"
+  ],
+  "publicApiSurface": [
+    "Microsoft.Build.Sql SDK (MSBuild SDK for .sqlproj files)",
+    "SqlPackage /Action:Publish",
+    "SqlPackage /Action:Extract",
+    "SqlPackage /Action:Export",
+    "SqlPackage /Action:Import",
+    "SqlPackage /Action:Script",
+    "SqlPackage /Action:DriftReport",
+    "SqlPackage /Action:DeployReport",
+    "dotnet new sqlproj (project template)",
+    "dotnet new sqlcodeanalysis (code analysis rule template)",
+    "Microsoft.SqlServer.DacFx NuGet API",
+    "Microsoft.SqlServer.TransactSql.ScriptDom (T-SQL parser API)",
+    "ArtifactReference (dacpac database reference in .sqlproj)",
+    "PackageReference (NuGet dacpac reference in .sqlproj)",
+    "SqlCmdVariable (variable definition in .sqlproj)",
+    "PreDeploy / PostDeploy (script items in .sqlproj)",
+    "DSP (target platform property in .sqlproj)"
+  ]
+}

@@ -1,0 +1,52 @@
+---
+title: "SQL database projects with Microsoft.Build.Sql SDK"
+description: "Microsoft.Build.Sql is an MSBuild SDK that compiles T-SQL source files into a deployable dacpac artifact using the standard dotnet build command."
+---
+
+SQL projects let you store your database schema as code — every table, view, stored procedure, and function lives in a `.sql` file checked into source control. The `Microsoft.Build.Sql` SDK brings the SDK-style project format familiar from .NET to the database world: `dotnet build` validates your T-SQL and produces a `.dacpac` artifact, and SqlPackage deploys that artifact to any target database, computing and applying only the diff. Compared to the legacy SSDT `.sqlproj` format, SDK-style projects are dramatically simpler — the project file contains only what's unique to your database, with sensible defaults handled by the SDK.
+
+## Build, package, deploy
+
+The workflow follows three steps:
+
+1. **Build** — `dotnet build` parses every `*.sql` file in your project, validates object references and T-SQL syntax, and writes a `.dacpac` to `bin/Debug/` or `bin/Release/`.
+2. **Package** — The `.dacpac` is a self-contained archive of your database model. You can store it as a build artifact, push it to a NuGet feed, or pass it directly to SqlPackage.
+3. **Deploy** — `SqlPackage /Action:Publish` compares the `.dacpac` against the target database and generates the minimal migration script needed to bring the database up to date.
+
+## What the SDK supports
+
+| Capability | Build-time validation | Included in deployment |
+|---|---|---|
+| Target platform | Yes | Optional, yes by default |
+| Database references | Yes | Optional for same database |
+| Package references | Yes | No |
+| SQLCMD variables | No | Yes |
+| Pre/post-deployment scripts | No | Yes |
+
+## Tooling integrations
+
+You can work with SQL projects from the command line or from a full IDE:
+
+- **VS Code / Azure Data Studio** — Install the [SQL Database Projects extension](https://marketplace.visualstudio.com/items?itemName=ms-mssql.sql-database-projects-vscode) for a graphical project explorer, schema compare, and one-click publish.
+- **Visual Studio** — SQL Server Data Tools (SSDT) supports SDK-style projects in the preview channel. Open `.sqlproj` files directly in Solution Explorer.
+- **dotnet CLI** — Any machine with .NET 8 or higher and the `Microsoft.Build.Sql.Templates` package can create, build, and publish projects without an IDE.
+
+## Explore SQL projects
+
+<CardGroup cols={2}>
+  <Card title="Project structure" icon="folder-open" href="/sql-projects/project-structure">
+    Understand how SQL files are discovered, organized, and compiled.
+  </Card>
+  <Card title="Database references" icon="database" href="/sql-projects/database-references">
+    Reference other dacpacs and NuGet packages for cross-database validation.
+  </Card>
+  <Card title="SQLCMD variables" icon="variable" href="/sql-projects/sqlcmd-variables">
+    Parameterize deployments with environment-specific values.
+  </Card>
+  <Card title="Pre/post-deployment scripts" icon="file-code" href="/sql-projects/pre-post-deployment-scripts">
+    Run T-SQL before or after schema changes for data seeding and migrations.
+  </Card>
+  <Card title="Convert an existing project" icon="arrows-rotate" href="/sql-projects/convert-existing-project">
+    Migrate a legacy SSDT project to the SDK-style format.
+  </Card>
+</CardGroup>

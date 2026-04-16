@@ -1,0 +1,85 @@
+---
+title: "DacFx & SqlPackage: SQL Database Development Platform"
+description: "DacFx and SqlPackage enable declarative SQL database development, schema portability, and CI/CD deployment across SQL Server and Azure SQL."
+---
+
+DacFx and SqlPackage form a comprehensive platform for SQL database development. The ecosystem lets you store your database schema as code, build it into a portable artifact (a `.dacpac`), and deploy it consistently across SQL Server, Azure SQL, Azure Synapse, and Microsoft Fabric — whether from a local machine or a CI/CD pipeline.
+
+## Components
+
+<CardGroup cols={2}>
+  <Card title="SqlPackage" icon="terminal" href="https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage">
+    A cross-platform CLI for creating and deploying `.dacpac` and `.bacpac` packages. Available as a `dotnet tool` for Windows, macOS, and Linux.
+  </Card>
+  <Card title="DacFx" icon="database" href="https://learn.microsoft.com/dotnet/api/microsoft.sqlserver.dac">
+    The Microsoft.SqlServer.DacFx .NET library. Provides application lifecycle services for SQL Server and Azure SQL database development and management.
+  </Card>
+  <Card title="Microsoft.Build.Sql" icon="code" href="https://www.nuget.org/packages/Microsoft.Build.Sql">
+    A .NET project SDK for SQL projects. Compiles `.sql` files into a `.dacpac` artifact using standard `dotnet build` tooling.
+  </Card>
+  <Card title="ScriptDOM" icon="brackets-curly" href="https://learn.microsoft.com/dotnet/api/microsoft.sqlserver.transactsql.scriptdom">
+    The Microsoft.SqlServer.TransactSql.ScriptDom NuGet package containing the Transact-SQL parser. Source code is available under the MIT license.
+  </Card>
+  <Card title="System dacpac packages" icon="box" href="https://www.nuget.org/packages/Microsoft.SqlServer.Dacpacs.Master">
+    NuGet packages containing `.dacpac` files for system databases: `master`, `msdb`, Azure SQL, Azure Synapse, and Microsoft Fabric targets.
+  </Card>
+  <Card title="Project templates" icon="file-code" href="https://www.nuget.org/packages/Microsoft.Build.Sql.Templates">
+    Microsoft.Build.Sql.Templates provides `dotnet new` templates for SQL projects (`sqlproj`) and custom code analysis rules (`sqlcodeanalysis`).
+  </Card>
+</CardGroup>
+
+## How it fits together
+
+A SQL project is a folder of `.sql` files managed by the Microsoft.Build.Sql SDK. Running `dotnet build` compiles those files into a `.dacpac` — a self-contained package that describes the full schema of your database.
+
+SqlPackage reads the `.dacpac` and publishes it to a target database. On first deploy, SqlPackage creates all the objects. On subsequent deploys, it computes a diff between the `.dacpac` and the live database and applies only the changes needed — no manual migration scripts required.
+
+```
+SQL project (.sql files)
+        │
+        ▼  dotnet build
+    .dacpac artifact
+        │
+        ▼  sqlpackage /Action:Publish
+  Target database (SQL Server / Azure SQL / Synapse / Fabric)
+```
+
+System dacpac packages provide `.dacpac` files for system databases so your SQL project can resolve cross-database references at build time without a live connection.
+
+## Installation at a glance
+
+Install SqlPackage as a .NET global tool:
+
+```bash
+dotnet tool install -g microsoft.sqlpackage
+```
+
+Install the SQL project templates:
+
+```bash
+dotnet new install Microsoft.Build.Sql.Templates
+```
+
+Add the DacFx library to a .NET project via NuGet:
+
+```bash
+dotnet add package Microsoft.SqlServer.DacFx
+```
+
+<Note>
+  Microsoft.Build.Sql requires .NET 8 or higher.
+</Note>
+
+## System dacpac packages
+
+The following NuGet packages provide system database references for use in SQL projects:
+
+| Package | Target |
+|---|---|
+| `Microsoft.SqlServer.Dacpacs.Master` | SQL Server master (versions 2008–2025) |
+| `Microsoft.SqlServer.Dacpacs.Msdb` | SQL Server msdb (versions 2008–2025) |
+| `Microsoft.SqlServer.Dacpacs.Azure.Master` | Azure SQL Database master |
+| `Microsoft.SqlServer.Dacpacs.DbFabric` | SQL database in Fabric |
+| `Microsoft.SqlServer.Dacpacs.FabricDw` | Warehouse in Fabric |
+| `Microsoft.SqlServer.Dacpacs.Synapse.Master` | Azure Synapse Analytics master |
+| `Microsoft.SqlServer.Dacpacs.SynapseServerless.Master` | Azure Synapse serverless SQL pools master |

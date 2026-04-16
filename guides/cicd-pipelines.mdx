@@ -1,0 +1,154 @@
+---
+title: "Automate SQL project deployments with CI/CD pipelines"
+description: "Set up automated build and deployment pipelines for SQL projects using GitHub Actions, Azure DevOps, and the sql-action integration."
+---
+
+Storing your database schema in a SQL project unlocks the same CI/CD practices used for application code. Every schema change goes through source control, gets validated by a build step, and is deployed consistently across environments — removing the need to run manual scripts or track changes by hand.
+
+## Set up Git for your SQL project
+
+Before adding a pipeline, make sure your SQL project is version-controlled correctly. The build output goes in `bin/` and `obj/`, which should stay out of source control.
+
+<Steps>
+  <Step title="Generate a .gitignore file">
+    Run the following command in your project folder to create the default .NET `.gitignore`, which excludes `bin/` and `obj/` automatically.
+
+    ```bash
+    dotnet new gitignore
+    ```
+  </Step>
+  <Step title="Commit the project files">
+    Commit the `.sqlproj` and `.sql` files. Do not commit the compiled `.dacpac` — that is produced by the pipeline.
+
+    ```bash
+    git init
+    git add .
+    git commit -m "new project"
+    ```
+  </Step>
+  <Step title="Push to a remote repository">
+    ```bash
+    git remote add origin https://github.com/{yourusername}/{yourrepository}.git
+    git branch -M main
+    git push -u origin main
+    ```
+  </Step>
+</Steps>
+
+<Note>
+  Commit `.sqlproj` and `.sql` files. Never commit `.dacpac`, `bin/`, or `obj/` — these are build artifacts.
+</Note>
+
+## GitHub Actions
+
+[azure/sql-action](https://github.com/azure/sql-action) is the recommended GitHub Action for SQL projects. It handles building the `.sqlproj` and publishing the resulting `.dacpac` to a target database in a single step.
+
+<Steps>
+  <Step title="Store your connection string as a secret">
+    In your GitHub repository, go to **Settings → Secrets and variables → Actions** and create a secret named `SQL_CONNECTION_STRING` containing your full ADO.NET connection string.
+  </Step>
+  <Step title="Create the workflow file">
+    Create `.github/workflows/build-and-deploy.yml` in your repository with the following content.
+
+    ```yaml
+    # .github/workflows/build-and-deploy.yml
+    name: Build and deploy SQL project
+    on: [push]
+
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+        - uses: actions/checkout@v3
+        - uses: azure/sql-action@v2
+          with:        
+            connection-string: ${{ secrets.SQL_CONNECTION_STRING }}
+            path: './ProductsTutorial.sqlproj'
+            action: 'publish'
+    ```
+  </Step>
+  <Step title="Push and verify">
+    Push the workflow file. The action triggers on every push, builds the project, and publishes the schema to the target database.
+  </Step>
+</Steps>
+
+The `SQL_CONNECTION_STRING` secret holds your full ADO.NET connection string, for example:
+
+```
+Server=tcp:{yourserver}.database.windows.net,1433;Initial Catalog=MyDatabase;User ID=sqladmin;Password={your_password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;
+```
+
+<Warning>
+  Never hardcode connection strings in workflow files. Always use GitHub Actions secrets.
+</Warning>
+
+## Azure DevOps
+
+Azure Pipelines supports SQL project deployments using `dotnet build` and SqlPackage. Build the project to produce a `.dacpac`, then publish it using the SqlPackage CLI.
+
+```yaml
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+  - task: UseDotNet@2
+    inputs:
+      packageType: sdk
+      version: 8.x
+
+  - script: dotnet build MyDatabase.sqlproj --configuration Release
+    displayName: Build SQL project
+
+  - script: |
+      sqlpackage /Action:Publish \
+        /SourceFile:"bin/Release/MyDatabase.dacpac" \
+        /TargetConnectionString:"$(SQL_CONNECTION_STRING)"
+    displayName: Publish dacpac
+```
+
+Store `SQL_CONNECTION_STRING` as a secret variable in your Azure DevOps pipeline library, then reference it as `$(SQL_CONNECTION_STRING)` in the pipeline YAML.
+
+For more details on Azure Pipelines SQL deployments, see the [Azure DevOps SQL deployments documentation](https://learn.microsoft.com/azure/devops/pipelines/targets/azure-sqldb).
+
+## Best practices
+
+<AccordionGroup>
+  <Accordion title="Block deployments on possible data loss">
+    Pass `/p:BlockOnPossibleDataLoss=true` to SqlPackage publish in your CI pipeline. This prevents accidental data loss from destructive schema changes such as column drops or type changes.
+
+    ```bash
+    sqlpackage /Action:Publish \
+      /SourceFile:"bin/Release/MyDatabase.dacpac" \
+      /TargetConnectionString:"$(SQL_CONNECTION_STRING)" \
+      /p:BlockOnPossibleDataLoss=true
+    ```
+  </Accordion>
+  <Accordion title="Store connection strings as secrets">
+    Always store connection strings in your CI platform's secret store — GitHub Actions secrets or Azure DevOps variable groups. Reference them as environment variables in your pipeline YAML. Never commit connection strings to source control.
+  </Accordion>
+  <Accordion title="Run DeployReport before publishing to production">
+    Use the SqlPackage `DeployReport` action to generate an XML report of what changes will be applied before running `Publish`. Review the report in a separate pipeline stage to catch unexpected schema changes.
+
+    ```bash
+    sqlpackage /Action:DeployReport \
+      /SourceFile:"bin/Release/MyDatabase.dacpac" \
+      /TargetConnectionString:"$(SQL_CONNECTION_STRING)" \
+      /OutputPath:"deploy-report.xml"
+    ```
+  </Accordion>
+  <Accordion title="Use SQLCMD variables for environment-specific configuration">
+    Define SQLCMD variables in your `.sqlproj` for values that differ between environments, such as linked server names or environment labels. Pass the values at deployment time using the `/v:` flag.
+
+    ```bash
+    sqlpackage /Action:Publish \
+      /SourceFile:"bin/Release/MyDatabase.dacpac" \
+      /TargetConnectionString:"$(SQL_CONNECTION_STRING)" \
+      /v:EnvironmentName=production
+    ```
+
+    See [SQLCMD variables](/sql-projects/sqlcmd-variables) for how to define variables in the project file.
+  </Accordion>
+</AccordionGroup>

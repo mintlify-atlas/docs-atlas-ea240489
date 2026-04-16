@@ -1,0 +1,114 @@
+---
+title: "Run T-SQL code analysis rules in SQL database projects"
+description: "Enable built-in or custom T-SQL code analysis rules to validate database code quality and catch issues during SQL project dotnet build."
+---
+
+Code analysis for SQL projects runs at build time and produces warnings or errors when your T-SQL code violates defined rules. Issues are surfaced during `dotnet build` — the same step that compiles your project — so you catch problems before they reach a database.
+
+## Built-in rules
+
+`Microsoft.Build.Sql` includes a set of default T-SQL code analysis rules that check for common issues such as use of deprecated syntax, potential performance problems, and unsafe patterns. These rules run against your SQL object model, not against a live database.
+
+## Enabling code analysis
+
+To enable code analysis in your SQL project, add the `RunSqlCodeAnalysis` property to your `.sqlproj` file:
+
+```xml
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+  <PropertyGroup>
+    <Name>MyDatabase</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+    <RunSqlCodeAnalysis>true</RunSqlCodeAnalysis>
+  </PropertyGroup>
+</Project>
+```
+
+After adding this property, run `dotnet build` to see code analysis results alongside any other build output. Rules produce MSBuild warnings or errors depending on their severity.
+
+You can also enable it temporarily without editing the project file:
+
+```bash
+dotnet build /p:RunSqlCodeAnalysis=true
+```
+
+<Note>
+  Code analysis runs at build time, not at deployment time. It validates your T-SQL object model — it does not connect to a live database.
+</Note>
+
+## Custom code analysis rules
+
+You can write your own rules to enforce organization-specific coding standards. The `sqlcodeanalysis` template scaffolds a complete .NET project that references DacFx and implements the `SqlCodeAnalysisRule` base class.
+
+### Scaffold a rule project
+
+Use the `sqlcodeanalysis` template from `Microsoft.Build.Sql.Templates` to create a new rule project:
+
+```bash
+dotnet new sqlcodeanalysis -n "WaitForDelay"
+```
+
+This creates a .NET project named `WaitForDelay` with:
+
+- A `.csproj` referencing `Microsoft.SqlServer.DacFx`
+- A sample `AvoidWaitForDelayRule` class that detects `WAITFOR DELAY` statements in stored procedures, functions, and triggers
+
+The generated project file looks like this:
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <PackageId>Sample.SqlCodeAnalysis1</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <DevelopmentDependency>true</DevelopmentDependency>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SqlServer.DacFx" Version="170.4.43-preview" PrivateAssets="All"/>
+  </ItemGroup>
+
+</Project>
+```
+
+To see all available template options:
+
+```bash
+dotnet new sqlcodeanalysis -h
+```
+
+### Build and package the rule
+
+Build the rule project to produce a `.dll`, then pack it as a NuGet package:
+
+```bash
+dotnet build
+dotnet pack
+```
+
+### Publish to a local feed
+
+Add a local folder as a NuGet source, then copy the package into it:
+
+```bash
+dotnet nuget add source c:\packages
+```
+
+Copy the `.nupkg` from `bin/Release` to the local source folder.
+
+### Reference the rule in your SQL project
+
+Add a `PackageReference` in your `.sqlproj` to include the rule assembly during build:
+
+```xml
+<ItemGroup>
+    <PackageReference Include="Sample.WaitForDelay" Version="1.0.0" />
+</ItemGroup>
+```
+
+With `<RunSqlCodeAnalysis>true</RunSqlCodeAnalysis>` set, the rule runs on every `dotnet build` and reports any `WAITFOR DELAY` uses as build warnings.
+
+<Tip>
+  Custom rules can enforce organization-specific standards — naming conventions, forbidden patterns, required index definitions — anything you can express by visiting the T-SQL AST. The template's `WaitForDelayVisitor` class demonstrates the visitor pattern used to traverse the AST.
+</Tip>

@@ -1,0 +1,97 @@
+---
+title: "Add database references to extend build validation"
+description: "Extend SQL project build-time validation to other databases by adding dacpac ArtifactReferences or NuGet PackageReferences to your sqlproj file."
+---
+
+Build-time validation in a SQL project normally covers only the objects defined within that project. Database references extend that coverage to objects that live in another database — or in a system database like `master` — so that cross-database queries, synonyms, and linked-server references resolve correctly during `dotnet build` instead of failing at deployment. You add a database reference as either a direct `.dacpac` file path (`ArtifactReference`) or a NuGet package (`PackageReference`).
+
+## ArtifactReference — direct dacpac reference
+
+Use `ArtifactReference` when you have a `.dacpac` file on disk, such as the output of another SQL project in the same repository.
+
+```xml
+<ItemGroup>
+  <ArtifactReference Include="SampleA.dacpac">
+    <DatabaseSqlCmdVariable>DatabaseA</DatabaseSqlCmdVariable>
+  </ArtifactReference>
+</ItemGroup>
+```
+
+After adding this reference, you can write T-SQL that refers to objects in the other database using the SQLCMD variable syntax:
+
+```sql
+SELECT * FROM [$(DatabaseA)].dbo.Table1
+```
+
+## PackageReference — NuGet dacpac reference
+
+Use `PackageReference` to pull a `.dacpac` from a NuGet feed. This is common for system databases and shared library dacpacs distributed through an internal feed.
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Microsoft.SqlServer.Dacpacs.Master" Version="160.0.0" />
+</ItemGroup>
+```
+
+If a NuGet package contains more than one `.dacpac`, use `DacpacName` to select the right one:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Contoso.Applications" Version="160.0.0">
+    <DacpacName>Outfitters</DacpacName>
+  </PackageReference>
+</ItemGroup>
+```
+
+## Reference attributes
+
+Both `ArtifactReference` and `PackageReference` accept the following child elements to describe the referenced database:
+
+| Attribute | Description | T-SQL usage |
+|---|---|---|
+| `DatabaseSqlCmdVariable` | Name of the SQLCMD variable that holds the database name at deploy time | `[$(SomeOtherDatabase)].dbo.Table1` |
+| `ServerSqlCmdVariable` | Name of the SQLCMD variable that holds the server name; use together with `DatabaseSqlCmdVariable` for cross-server references | `[$(SomeOtherServer)].[$(SomeOtherDatabase)].dbo.Table1` |
+| `DatabaseVariableLiteralValue` | Hard-coded literal database name; use when the name is always the same across environments | `[SomeOtherDatabase].dbo.Table1` |
+
+### Cross-server reference example
+
+```xml
+<ItemGroup>
+  <ArtifactReference Include="Reporting.dacpac">
+    <ServerSqlCmdVariable>ReportingServer</ServerSqlCmdVariable>
+    <DatabaseSqlCmdVariable>ReportingDb</DatabaseSqlCmdVariable>
+  </ArtifactReference>
+</ItemGroup>
+```
+
+```sql
+SELECT * FROM [$(ReportingServer)].[$(ReportingDb)].dbo.SalesFact
+```
+
+## Same-database composite references
+
+When a referenced dacpac contains objects that belong to the same database as your project — for example, objects split across multiple projects for team ownership — set `IncludeCompositeObjects` to `true` in your SqlPackage publish command so those objects are included in deployment:
+
+```bash
+SqlPackage /Action:Publish /SourceFile:MyDatabase.dacpac \
+  /TargetConnectionString:{connection_string} \
+  /p:IncludeCompositeObjects=true
+```
+
+## System dacpac packages
+
+Microsoft publishes ready-made NuGet packages for system databases on NuGet.org. Use these to resolve references to system objects without maintaining your own dacpac files.
+
+| Package | Versions available | Database |
+|---|---|---|
+| `Microsoft.SqlServer.Dacpacs.Master` | 150–170 | SQL Server / Azure SQL `master` |
+| `Microsoft.SqlServer.Dacpacs.Msdb` | 150–170 | SQL Server `msdb` |
+| `Microsoft.SqlServer.Dacpacs.Azure.Master` | — | Azure SQL Database `master` |
+| `Microsoft.SqlServer.Dacpacs.DbFabric` | — | Microsoft Fabric SQL Database |
+| `Microsoft.SqlServer.Dacpacs.FabricDw` | — | Microsoft Fabric Data Warehouse |
+| `Microsoft.SqlServer.Dacpacs.Synapse.Master` | — | Azure Synapse dedicated pool `master` |
+| `Microsoft.SqlServer.Dacpacs.SynapseServerless.Master` | — | Azure Synapse serverless pool `master` |
+
+<Tip>
+  Pin the package version to match your `DSP` target platform. For example, use version `160.x.x` packages when targeting `Sql160DatabaseSchemaProvider`.
+</Tip>

@@ -1,0 +1,187 @@
+---
+title: "Microsoft.Build.Sql SDK version history and changelog"
+description: "Changelog for Microsoft.Build.Sql and Microsoft.Build.Sql.Templates releases, including new features, fixes, and breaking changes by version."
+---
+
+Microsoft.Build.Sql is the MSBuild SDK for SQL database projects. It enables you to build `.sqlproj` files with the `dotnet` CLI and integrates with CI/CD pipelines. You can install it from [NuGet (Microsoft.Build.Sql)](https://www.nuget.org/packages/Microsoft.Build.Sql) and the companion templates package from [NuGet (Microsoft.Build.Sql.Templates)](https://www.nuget.org/packages/Microsoft.Build.Sql.Templates).
+
+## All releases
+
+| Release date | Version |
+| :----------- | :------ |
+| 2026-03-19 | 2.2.0-preview.1 |
+| 2026-02-11 | 2.1.0 |
+| 2026-01-30 | 2.1.0-preview.3 |
+| 2025-12-15 | 2.1.0-preview.2 |
+| 2025-11-14 | 2.1.0-preview.1 |
+| 2025-10-14 | 2.0.0 |
+| 2025-10-03 | 2.0.0-rc.1 |
+| 2025-08-01 | 2.0.0-preview.3 |
+| 2025-06-03 | 2.0.0-preview.2 |
+| 2025-04-18 | 2.0.0-preview.1 |
+| 2025-03-11 | 1.0.0 |
+| 2024-11-22 | 0.2.5-preview |
+| 2024-11-01 | 0.2.4-preview |
+| 2024-09-19 | 0.2.3-preview |
+| 2024-07-17 | 0.2.0-preview |
+| 2024-06-06 | 0.1.19-preview |
+| 2024-02-27 | 0.1.15-preview |
+| 2023-10-23 | 0.1.14-preview |
+| 2023-08-28 | 0.1.12-preview |
+| 2023-05-11 | 0.1.10-preview |
+| 2023-02-13 | 0.1.9-preview |
+| 2022-11-10 | 0.1.7-preview |
+| 2022-02-28 | 0.1.3-preview |
+
+## Recent releases
+
+<AccordionGroup>
+
+<Accordion title="2.2.0-preview.1 — 2026-03-19">
+
+### Changed
+
+- Updated DacFx version to `170.4.43-preview`.
+- Updated `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.191.0`.
+
+</Accordion>
+
+<Accordion title="2.1.0 — 2026-02-11">
+
+### Added
+
+- Adds support for database options `ACCELERATED_DATABASE_RECOVERY` and `OPTIMIZED_LOCKING`.
+
+### Changed
+
+- Updated DacFx version to `170.3.93`.
+- Updated `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.157.0`.
+
+### Fixed
+
+- Fixes [#719](https://github.com/microsoft/DacFx/issues/719).
+- Fixes [#713](https://github.com/microsoft/DacFx/issues/713).
+- Fixes [#740](https://github.com/microsoft/DacFx/issues/740).
+
+</Accordion>
+
+<Accordion title="2.1.0-preview.3 — 2026-01-30">
+
+### Changed
+
+- Updated DacFx version to `170.3.83-preview`.
+- Updated `Microsoft.SqlServer.TransactSql.ScriptDom` to `170.157.0`.
+
+</Accordion>
+
+<Accordion title="2.1.0-preview.2 — 2025-12-15">
+
+### Changed
+
+- Updated DacFx version to `170.3.54-preview`.
+- Updated `Microsoft.Data.SqlClient` version to `6.1.3`.
+
+### Fixed
+
+- Fixes solution/project-type recognition ([#740](https://github.com/microsoft/DacFx/issues/740)).
+
+</Accordion>
+
+<Accordion title="2.1.0-preview.1 — 2025-11-14">
+
+### Added
+
+- Adds support for database options `ACCELERATED_DATABASE_RECOVERY` and `OPTIMIZED_LOCKING`.
+
+### Changed
+
+- Updated DacFx version to `170.3.37-preview`.
+
+### Fixed
+
+- Fixes [#719](https://github.com/microsoft/DacFx/issues/719).
+- Fixes [#713](https://github.com/microsoft/DacFx/issues/713).
+
+</Accordion>
+
+<Accordion title="2.0.0 — 2025-10-14">
+
+### Added
+
+- Added support for `Sql170DatabaseSchemaProvider` (SQL 2025) target platform.
+
+### Changed
+
+- Updated DacFx version to `170.2.70`.
+- .NET SDK targets are imported by default, bringing in support for artifact outputs and tool package references.
+- Whole project should no longer rebuild with no changes to files.
+
+### Fixed
+
+- Fixed a build failure in Visual Studio if the project was previously built with `dotnet build`.
+- Fixed build error in SSDT with message `Error loading lock file '\obj\project.assets.json' : Error reading '' : Imports contains an invalid framework: 'unsupported' in 'project.json'.`
+- Fixed issue where extra unnecessary binaries are packaged in the SDK.
+- Fixed a bug where `MaxDopForSecondary` is incorrectly set ([#597](https://github.com/microsoft/DacFx/issues/597)).
+- Fixed incremental builds being skipped when files are deleted ([#668](https://github.com/microsoft/DacFx/pull/668)).
+- Fixed an issue where project build fails on `CREATE USER` with SID/TYPE ([#632](https://github.com/microsoft/DacFx/issues/632)).
+- Fixed build error with scalar functions and identity columns on Fabric DW.
+
+</Accordion>
+
+<Accordion title="2.0.0-rc.1 — 2025-10-03">
+
+### Added
+
+- Fixes the bugs with External Model and dependency to a Database Credential.
+
+### Changed
+
+- Updated DacFx version to `170.2.68-preview`.
+
+</Accordion>
+
+<Accordion title="1.0.0 — 2025-03-11">
+
+### Breaking change
+
+- .NET 8 SDK is now required for `dotnet build`. No changes required if building in Visual Studio ([#534](https://github.com/microsoft/DacFx/pull/534)).
+
+### Added
+
+- Added globalization support ([#504](https://github.com/microsoft/DacFx/pull/504)).
+- Added detailed README to SDK and Templates packages ([#542](https://github.com/microsoft/DacFx/pull/542)).
+- Added link to release notes ([#543](https://github.com/microsoft/DacFx/pull/543), [#548](https://github.com/microsoft/DacFx/pull/548)).
+- Added `DevelopmentDependency` to code analyzer template by default ([#546](https://github.com/microsoft/DacFx/pull/546)).
+- Added a check for duplicate build items ([#574](https://github.com/microsoft/DacFx/pull/574), [#578](https://github.com/microsoft/DacFx/pull/578)).
+
+### Known issues
+
+- Compatibility issues between Microsoft.Build.Sql 1.0.0 and .NET 10 have been reported ([#708](https://github.com/microsoft/DacFx/issues/708)).
+
+</Accordion>
+
+<Accordion title="0.2.5-preview — 2024-11-22">
+
+### Added
+
+- Added code analysis sample template, creatable via `dotnet new sqlcodeanalysis` ([#515](https://github.com/microsoft/DacFx/pull/515)).
+- Added support for [SQL database in Fabric](https://learn.microsoft.com/en-us/fabric/database/sql/overview) in the target platform `SqlDbFabricDatabaseSchemaProvider`.
+
+### Fixed
+
+- Fixed SSDT loading error introduced in SDK version 0.2.4-preview ([#524](https://github.com/microsoft/DacFx/pull/524)).
+- Fixed `:r` included files in pre/post-deployment scripts being also included in build ([#497](https://github.com/microsoft/DacFx/pull/497)).
+- Fixed build error when referencing synonym on table with UDT of same name.
+- Fixed unresolved reference error to `ISJSON` function in stored procedures.
+
+### Changed
+
+- Updated DacFx version to `162.5.57` and `System.IO.Packaging` to `8.0.1` ([#530](https://github.com/microsoft/DacFx/pull/530)).
+
+</Accordion>
+
+</AccordionGroup>
+
+<Note>
+For versions earlier than 0.2.5-preview, see the [release notes on GitHub](https://github.com/microsoft/DacFx/tree/main/release-notes/Microsoft.Build.Sql).
+</Note>

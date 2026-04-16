@@ -1,0 +1,171 @@
+---
+title: "Install SqlPackage, DacFx SDK, and project templates"
+description: "Install the Microsoft SqlPackage CLI, Microsoft.Build.Sql SDK, and project templates on Windows, macOS, and Linux using the .NET CLI."
+---
+
+The DacFx ecosystem consists of several installable components: the SqlPackage CLI for deploying and extracting databases, the Microsoft.Build.Sql SDK for building SQL projects, `dotnet new` templates for scaffolding projects, the DacFx NuGet library for .NET integration, and system dacpac packages for cross-database references. This page covers how to install each component.
+
+<Note>
+  Microsoft.Build.Sql and its project templates require .NET SDK 8 or higher. Run `dotnet --version` to check your installed version.
+</Note>
+
+## SqlPackage CLI
+
+SqlPackage is a cross-platform command-line utility for creating and deploying `.dacpac` and `.bacpac` packages. It is the primary interface to DacFx from the command line.
+
+### Install as a dotnet tool
+
+The recommended installation method on all platforms is as a .NET global tool:
+
+<Tabs>
+  <Tab title="Windows">
+    ```bash
+    dotnet tool install -g microsoft.sqlpackage
+    ```
+  </Tab>
+  <Tab title="macOS">
+    ```bash
+    dotnet tool install -g microsoft.sqlpackage
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    dotnet tool install -g microsoft.sqlpackage
+    ```
+  </Tab>
+</Tabs>
+
+After installation, verify SqlPackage is available:
+
+```bash
+sqlpackage /version
+```
+
+To update an existing installation:
+
+```bash
+dotnet tool update -g microsoft.sqlpackage
+```
+
+### Install from zip
+
+SqlPackage is also available as a self-contained zip download for Windows, macOS, and Linux. Download the appropriate package from the [SqlPackage documentation](https://learn.microsoft.com/sql/tools/sqlpackage/sqlpackage-download) and extract it to a location of your choice. Add the extracted folder to your `PATH` environment variable to use `sqlpackage` from any terminal.
+
+## Microsoft.Build.Sql project templates
+
+The `Microsoft.Build.Sql.Templates` package provides `dotnet new` templates for creating SQL projects and custom code analysis rules.
+
+### Install templates
+
+```bash
+dotnet new install Microsoft.Build.Sql.Templates
+```
+
+### Available templates
+
+| Template | Short name | Description |
+|---|---|---|
+| SQL project | `sqlproj` | A new SDK-style SQL project |
+| SQL code analysis rule | `sqlcodeanalysis` | A sample custom code analysis rule |
+
+Create a new SQL project:
+
+```bash
+dotnet new sqlproj -n MyDatabase
+```
+
+Create a new SQL project targeting Azure SQL Database:
+
+```bash
+dotnet new sqlproj -n MyDatabase -tp SqlAzureV12
+```
+
+Create a new SQL code analysis rule project:
+
+```bash
+dotnet new sqlcodeanalysis -n WaitForDelay
+```
+
+To uninstall the templates:
+
+```bash
+dotnet new uninstall Microsoft.Build.Sql.Templates
+```
+
+## DacFx NuGet package
+
+Add the `Microsoft.SqlServer.DacFx` NuGet package to a .NET project to access DacFx APIs for programmatic database development and management:
+
+```bash
+dotnet add package Microsoft.SqlServer.DacFx
+```
+
+Or reference it directly in a `.csproj` file:
+
+```xml
+<PackageReference Include="Microsoft.SqlServer.DacFx" Version="*" />
+```
+
+## ScriptDOM
+
+The `Microsoft.SqlServer.TransactSql.ScriptDom` package provides the Transact-SQL parser. Add it to a .NET project to parse and analyze T-SQL code:
+
+```bash
+dotnet add package Microsoft.SqlServer.TransactSql.ScriptDom
+```
+
+## System dacpac packages
+
+System dacpac packages provide `.dacpac` files for system databases. Add them as NuGet references in a SQL project to resolve cross-database references at build time without requiring a live database connection.
+
+| Package | Target platform |
+|---|---|
+| `Microsoft.SqlServer.Dacpacs.Master` | SQL Server master (versions 2008–2025) |
+| `Microsoft.SqlServer.Dacpacs.Msdb` | SQL Server msdb (versions 2008–2025) |
+| `Microsoft.SqlServer.Dacpacs.Azure.Master` | Azure SQL Database master |
+| `Microsoft.SqlServer.Dacpacs.DbFabric` | SQL database in Fabric |
+| `Microsoft.SqlServer.Dacpacs.FabricDw` | Warehouse in Fabric |
+| `Microsoft.SqlServer.Dacpacs.Synapse.Master` | Azure Synapse Analytics master |
+| `Microsoft.SqlServer.Dacpacs.SynapseServerless.Master` | Azure Synapse serverless SQL pools master |
+
+Add a system dacpac package to a SQL project:
+
+```bash
+dotnet add package Microsoft.SqlServer.Dacpacs.Master
+```
+
+## Requirements
+
+| Component | Requirement |
+|---|---|
+| Microsoft.Build.Sql SDK | .NET 8 or higher |
+| Microsoft.Build.Sql.Templates | .NET SDK 8 or higher |
+| SqlPackage (dotnet tool) | .NET 8 or higher |
+| Microsoft.SqlServer.DacFx | .NET Standard 2.1 or higher |
+| Microsoft.SqlServer.TransactSql.ScriptDom | .NET Standard 2.0 or higher |
+
+## Telemetry
+
+The Microsoft.Build.Sql SDK collects usage and error telemetry by default to help improve the tools. To opt out, set the following environment variable before running build commands:
+
+<Tabs>
+  <Tab title="Windows (Command Prompt)">
+    ```bash
+    set DACFX_TELEMETRY_OPTOUT=1
+    ```
+  </Tab>
+  <Tab title="Windows (PowerShell)">
+    ```bash
+    $env:DACFX_TELEMETRY_OPTOUT = "1"
+    ```
+  </Tab>
+  <Tab title="macOS / Linux">
+    ```bash
+    export DACFX_TELEMETRY_OPTOUT=1
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  You can also opt out by setting the [.NET SDK telemetry opt-out](https://learn.microsoft.com/dotnet/core/tools/telemetry#how-to-opt-out) environment variable `DOTNET_CLI_TELEMETRY_OPTOUT=1`.
+</Note>

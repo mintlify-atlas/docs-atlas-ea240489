@@ -1,97 +1,87 @@
 ---
-title: "Introduction"
-description: "Welcome to the new home for your documentation"
+title: "DacFx & SqlPackage: SQL Database Development Tools"
+description: "Microsoft's tools for declarative SQL database development. Package, version, and deploy SQL Server and Azure SQL schemas with ease."
 ---
 
-## Setting up
+DacFx and SqlPackage are Microsoft's suite of tools for SQL database development and deployment. Store your database schema as code in SQL projects, compile it to a portable `.dacpac` package, and deploy it consistently across SQL Server, Azure SQL, Azure Synapse, and Microsoft Fabric environments.
 
-Get your documentation site up and running in minutes.
-
-<Card
-  title="Start here"
-  icon="rocket"
-  href="/quickstart"
-  horizontal
->
-  Follow our three step quickstart guide.
-</Card>
-
-## Make it yours
-
-Design a docs site that looks great and empowers your users.
-
-<Columns cols={2}>
-  <Card
-    title="Edit locally"
-    icon="pen-to-square"
-    href="/development"
-  >
-    Edit your docs locally and preview them in real time.
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Create your first SQL project and deploy it to a database in minutes.
   </Card>
-  <Card
-    title="Customize your site"
-    icon="palette"
-    href="/essentials/settings"
-  >
-    Customize the design and colors of your site to match your brand.
+  <Card title="Installation" icon="download" href="/installation">
+    Install SqlPackage, the Microsoft.Build.Sql SDK, and project templates.
   </Card>
-    <Card
-    title="Set up navigation"
-    icon="map"
-    href="/essentials/navigation"
-  >
-    Organize your docs to help users find what they need and succeed with your product.
+  <Card title="SQL Projects" icon="database" href="/sql-projects/overview">
+    Learn how SDK-style SQL projects work and how to structure your database code.
   </Card>
-  <Card
-    title="API documentation"
-    icon="terminal"
-    href="/api-reference/introduction"
-  >
-    Auto-generate API documentation from OpenAPI specifications.
+  <Card title="SqlPackage CLI" icon="terminal" href="/sqlpackage/overview">
+    Explore all SqlPackage actions for publishing, extracting, and comparing schemas.
   </Card>
-</Columns>
+</CardGroup>
 
-## Create beautiful pages
+## What's included
 
-Everything you need to create world-class documentation.
+<CardGroup cols={2}>
+  <Card title="Microsoft.Build.Sql" icon="gear" href="/sql-projects/overview">
+    MSBuild SDK for SQL projects. Compiles T-SQL files to a `.dacpac` artifact using `dotnet build`.
+  </Card>
+  <Card title="SqlPackage" icon="arrow-right-arrow-left" href="/sqlpackage/overview">
+    Cross-platform CLI for publishing, extracting, exporting, and importing database schemas.
+  </Card>
+  <Card title="DacFx Library" icon="cube" href="/introduction">
+    .NET library providing programmatic access to dacpac creation, deployment, and schema comparison.
+  </Card>
+  <Card title="Project Templates" icon="file-code" href="/quickstart">
+    `dotnet new sqlproj` and `dotnet new sqlcodeanalysis` templates for rapid project setup.
+  </Card>
+</CardGroup>
 
-<Columns cols={2}>
-  <Card
-    title="Write with MDX"
-    icon="pen-fancy"
-    href="/essentials/markdown"
-  >
-    Use MDX to style your docs pages.
-  </Card>
-  <Card
-    title="Code samples"
-    icon="code"
-    href="/essentials/code"
-  >
-    Add sample code to demonstrate how to use your product.
-  </Card>
-  <Card
-    title="Images"
-    icon="image"
-    href="/essentials/images"
-  >
-    Display images and other media.
-  </Card>
-  <Card
-    title="Reusable snippets"
-    icon="recycle"
-    href="/essentials/reusable-snippets"
-  >
-    Write once and reuse across your docs.
-  </Card>
-</Columns>
+## Get started
 
-## Need inspiration?
+<Steps>
+  <Step title="Install SqlPackage and the SDK templates">
+    Install the SqlPackage CLI tool and the SQL project templates via the .NET CLI.
 
-<Card
-  title="See complete examples"
-  icon="stars"
-  href="https://mintlify.com/customers"
->
-  Browse our showcase of exceptional documentation sites.
-</Card>
+    ```bash
+    dotnet tool install -g microsoft.sqlpackage
+    dotnet new install Microsoft.Build.Sql.Templates
+    ```
+  </Step>
+  <Step title="Create a SQL project">
+    Scaffold a new SQL project using the `sqlproj` template.
+
+    ```bash
+    dotnet new sqlproj -n MyDatabase
+    ```
+  </Step>
+  <Step title="Add your database objects">
+    Create `.sql` files with your T-SQL table, view, and stored procedure definitions. The SDK automatically includes all `*.sql` files during build.
+  </Step>
+  <Step title="Build and publish">
+    Compile to a `.dacpac` and deploy to your target database.
+
+    ```bash
+    dotnet build
+    sqlpackage /Action:Publish /SourceFile:"bin/Debug/MyDatabase.dacpac" \
+      /TargetConnectionString:"<your-connection-string>"
+    ```
+  </Step>
+</Steps>
+
+## Key concepts
+
+<AccordionGroup>
+  <Accordion title="What is a dacpac?">
+    A `.dacpac` (Data-tier Application Package) is a ZIP-format file that contains a database schema model, pre/post-deployment scripts, and metadata. It is the compiled output of a SQL project and the input for SqlPackage deployment operations.
+  </Accordion>
+  <Accordion title="What is a bacpac?">
+    A `.bacpac` file captures both the schema and data of a database, suitable for portability and archiving. SqlPackage's Export and Import actions work with `.bacpac` files.
+  </Accordion>
+  <Accordion title="Which SQL platforms are supported?">
+    SQL projects and SqlPackage support SQL Server 2012 through 2025, Azure SQL Database, Azure SQL Managed Instance, Azure Synapse Analytics, Azure Synapse Serverless, and SQL database in Microsoft Fabric.
+  </Accordion>
+  <Accordion title="How does schema drift work?">
+    SqlPackage compares the schema in your `.dacpac` against the live database and generates an incremental deployment script — only altering objects that differ. You never write migration scripts by hand.
+  </Accordion>
+</AccordionGroup>

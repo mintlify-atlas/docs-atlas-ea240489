@@ -1,0 +1,93 @@
+---
+title: "SQL project target platforms and version compatibility"
+description: "Configure the target platform in your SQL project to validate SQL Server version compatibility and control deployment behavior with DSP settings."
+---
+
+The target platform in a SQL project controls two things: build-time validation of the T-SQL features you use, and deployment-time compatibility checks against a live database. Setting the correct platform ensures that your project only uses syntax and features available in your target SQL engine, and that SqlPackage rejects deployments to incompatible databases.
+
+## The DSP property
+
+The target platform is set using the `DSP` property inside the `<PropertyGroup>` element of your `.sqlproj` file. The value is a fully qualified schema provider name from the `Microsoft.Data.Tools.Schema.Sql` namespace.
+
+```xml
+<Project DefaultTargets="Build">
+  <Sdk Name="Microsoft.Build.Sql" Version="2.1.0" />
+  <PropertyGroup>
+    <Name>AdventureWorks</Name>
+    <DSP>Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider</DSP>
+  </PropertyGroup>
+</Project>
+```
+
+By default, when you publish a `.dacpac`, SqlPackage checks the target platform in the dacpac against the version of the live database. If they are incompatible, the deployment fails. You can override this behavior with publish options if needed.
+
+## Valid DSP values
+
+| DSP value | Target platform |
+|---|---|
+| `Microsoft.Data.Tools.Schema.Sql.Sql120DatabaseSchemaProvider` | SQL Server 2014 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql130DatabaseSchemaProvider` | SQL Server 2016 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql140DatabaseSchemaProvider` | SQL Server 2017 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql150DatabaseSchemaProvider` | SQL Server 2019 |
+| `Microsoft.Data.Tools.Schema.Sql.Sql160DatabaseSchemaProvider` | SQL Server 2022 (161.6374.0+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider` | Azure SQL Database |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDbFabricDatabaseSchemaProvider` | SQL database in Fabric (162.3+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDwDatabaseSchemaProvider` | Azure Synapse Analytics (dedicated) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlServerlessDatabaseSchemaProvider` | Azure Synapse serverless (161.8089.0+) |
+| `Microsoft.Data.Tools.Schema.Sql.SqlDwUnifiedDatabaseSchemaProvider` | Synapse Unified (162.1+) |
+
+<Note>
+  Some platforms require a minimum version of the `Microsoft.Build.Sql` SDK, shown in parentheses above. Update the `Version` attribute in your `<Sdk>` element if you need a newer platform.
+</Note>
+
+## Setting the platform with dotnet new
+
+When you create a new project using the `sqlproj` template, use the `-tp` flag to set the target platform at creation time. This saves editing the `.sqlproj` manually.
+
+```bash
+# Azure SQL Database
+dotnet new sqlproj -n "AdventureWorksLT" -tp SqlAzureV12
+
+# SQL Server 2019
+dotnet new sqlproj -n "AdventureWorks" -tp Sql150
+```
+
+The `-tp` flag accepts the short form of the provider name (for example, `SqlAzureV12` instead of the full `Microsoft.Data.Tools.Schema.Sql.SqlAzureV12DatabaseSchemaProvider`).
+
+## System dacpac packages
+
+When your project references system databases (`master`, `msdb`) as package references, use the NuGet package that matches your target platform. The version number in the package corresponds to the SQL Server version.
+
+| Package | Platforms |
+|---|---|
+| `Microsoft.SqlServer.Dacpacs.Master` | SQL Server 2008 (100) through SQL Server 2025 (170) |
+| `Microsoft.SqlServer.Dacpacs.Msdb` | SQL Server 2008 (100) through SQL Server 2025 (170) |
+| `Microsoft.SqlServer.Dacpacs.Azure.Master` | Azure SQL Database |
+| `Microsoft.SqlServer.Dacpacs.DbFabric` | SQL database in Fabric |
+| `Microsoft.SqlServer.Dacpacs.Synapse.Master` | Azure Synapse Analytics (dedicated) |
+| `Microsoft.SqlServer.Dacpacs.SynapseServerless.Master` | Azure Synapse serverless |
+
+For example, to reference `master` for SQL Server 2019:
+
+```xml
+<ItemGroup>
+  <PackageReference Include="Microsoft.SqlServer.Dacpacs.Master" Version="150.0.0" />
+</ItemGroup>
+```
+
+The version prefix (`150`) corresponds to the SQL Server version number. See [package references](/sql-projects/database-references) for full details on referencing system databases.
+
+## Overriding platform checks at deployment
+
+If you need to deploy a dacpac to a database with a different version than the target platform recorded in the dacpac, you can override the check using SqlPackage publish options:
+
+```bash
+sqlpackage /Action:Publish \
+  /SourceFile:"bin/Release/MyDatabase.dacpac" \
+  /TargetConnectionString:"<your-connection-string>" \
+  /p:AllowIncompatiblePlatform=true
+```
+
+<Warning>
+  Overriding platform compatibility checks can result in failed deployments or runtime errors if your T-SQL uses features not available on the actual target database. Use this option only when you have verified compatibility manually.
+</Warning>

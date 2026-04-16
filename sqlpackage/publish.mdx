@@ -1,0 +1,88 @@
+---
+title: "SqlPackage Publish: deploy dacpac schemas to databases"
+description: "The SqlPackage Publish action deploys a dacpac schema to a target database, applying only the changes needed to bring it up to date."
+---
+
+The Publish action compares the schema defined in a `.dacpac` file against the target database, calculates the minimum set of changes required to bring them into sync, and applies those changes. It does not drop and recreate the database — only the objects that differ are altered. This means you can run Publish repeatedly as your schema evolves without managing migration scripts manually.
+
+## Basic syntax
+
+```bash
+sqlpackage /Action:Publish /SourceFile:<path-to-dacpac> /TargetConnectionString:<connection-string>
+```
+
+## Example: publish to Azure SQL Database
+
+This example is taken directly from the SQL project tutorial and deploys a compiled dacpac to an Azure SQL Database using SQL authentication:
+
+```bash
+SqlPackage /Action:Publish /SourceFile:"bin\Debug\ProductsTutorial.dacpac" \
+    /TargetConnectionString:"Server=tcp:{yourserver}.database.windows.net,1433;Initial Catalog=ProductsTutorial;User ID=sqladmin;Password={your_password};Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;"
+```
+
+## Example: publish with a SQLCMD variable override
+
+If your dacpac defines SQLCMD variables (for example, an `EnvironmentName` variable), you can supply values at publish time using the `/v:` parameter:
+
+```bash
+SqlPackage /Action:Publish /SourceFile:AdventureWorks.dacpac \
+    /TargetConnectionString:{connection_string_here} \
+    /v:EnvironmentName=production
+```
+
+## Common publish parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `/SourceFile` | Path to the `.dacpac` file to deploy |
+| `/TargetConnectionString` | Full connection string for the target database |
+| `/TargetServerName` | Target server hostname; use with `/TargetDatabaseName` as an alternative to a connection string |
+| `/TargetDatabaseName` | Target database name; use with `/TargetServerName` |
+| `/p:IncludeCompositeObjects` | Include objects from database references (composite objects) in the deployment. Set to `true` when your project uses `ArtifactReference` entries |
+| `/p:BlockOnPossibleDataLoss` | Block deployment if the schema change could cause data loss. Defaults to `true` |
+| `/p:GenerateSmartDefaults` | Automatically generate default values when adding a `NOT NULL` column to a table that already contains data |
+| `/v:VariableName=Value` | Set a SQLCMD variable value for the deployment |
+
+<Warning>
+  By default, `/p:BlockOnPossibleDataLoss=true` causes Publish to fail if any schema change — such as dropping a column or changing a data type — could result in data loss. Set this to `false` only when you are certain the data impact is acceptable and intentional.
+</Warning>
+
+## SQLCMD variables
+
+SQLCMD variables defined in a SQL project allow you to parameterize SQL objects and deployment scripts. You define them in the `.sqlproj` file with a default value, then override them at deploy time using `/v:VariableName=Value` on the command line.
+
+```bash
+# Deploy with two variable overrides
+sqlpackage /Action:Publish /SourceFile:MyApp.dacpac \
+    /TargetConnectionString:{connection_string} \
+    /v:EnvironmentName=production \
+    /v:AppSchema=app
+```
+
+<Note>
+  Publish is idempotent. Running the same Publish command multiple times against a database that is already up to date will result in no changes being applied. This makes it safe to include in automated pipelines without additional state tracking.
+</Note>
+
+## Publish workflow
+
+<Steps>
+  <Step title="Build your SQL project">
+    Run `dotnet build` in your SQL project directory to produce a `.dacpac` file in the `bin/Debug/` folder.
+
+    ```bash
+    dotnet build
+    ```
+  </Step>
+  <Step title="Run SqlPackage Publish">
+    Deploy the dacpac to your target database. Provide the dacpac path and a connection string:
+
+    ```bash
+    sqlpackage /Action:Publish \
+        /SourceFile:"bin/Debug/MyProject.dacpac" \
+        /TargetConnectionString:"Server=tcp:{server}.database.windows.net,1433;Initial Catalog={database};User ID={user};Password={password};Encrypt=True;"
+    ```
+  </Step>
+  <Step title="Verify the deployment">
+    Connect to the target database and confirm that the expected objects are present and the schema matches your project.
+  </Step>
+</Steps>
